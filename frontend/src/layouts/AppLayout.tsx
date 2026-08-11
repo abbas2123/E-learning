@@ -4,18 +4,21 @@ import FooterSection from "../features/Home/sections/FooterSection";
 
 export default function AppLayout() {
   return (
-    <div className="relative min-h-screen bg-white flex flex-col justify-between">
-      {/* Global full-width Navbar — rendered once for ALL pages */}
-      <header className="absolute inset-x-0 top-0 z-50 w-full px-6 sm:px-10 lg:px-12">
+    <div className="flex min-h-screen w-full flex-col bg-white">
+      {/* Full width navbar */}
+
+      <header className="absolute inset-x-0 top-0 z-50 w-full bg-[#53C4C8]">
         <Navbar />
       </header>
 
-      {/* Matched child route renders here */}
-      <main className="flex-grow">
+      {/* Page content */}
+
+      <main className="w-full flex-1">
         <Outlet />
       </main>
 
-      {/* Global Footer — rendered once for ALL pages inside the layout */}
+      {/* Footer */}
+
       <FooterSection />
     </div>
   );
