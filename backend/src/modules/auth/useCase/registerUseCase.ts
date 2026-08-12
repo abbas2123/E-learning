@@ -45,7 +45,7 @@ export class RegisterUseCase {
     });
 
     const savedUser = await this.UserRepository.create(newUser);
-
+    console.log("saveduser", savedUser);
     // Generate & send OTP code
     const otp = this.OtpService.generateOtp();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes

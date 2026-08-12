@@ -7,4 +7,5 @@ export type User = {
   enrolledCount: number;
   activeCourses: number;
   gpa: string;
+  authProvider: "local" | "google";
 };

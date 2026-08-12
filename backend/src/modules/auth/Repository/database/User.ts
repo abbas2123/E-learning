@@ -87,6 +87,17 @@ const UserSchema = new Schema(
       type: Date,
       default: null,
     },
+    phone: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    location: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     timestamps: true,

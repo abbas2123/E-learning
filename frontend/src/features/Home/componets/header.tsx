@@ -26,7 +26,7 @@ export default function Navbar() {
   const currentNavItems = isLoggedIn ? userNavItems : guestNavItems;
   const navigate = useNavigate();
   return (
-    <div className="flex items-center justify-between gap-6 py-6 lg:gap-6 relative">
+    <div className="relative flex w-full items-center justify-between gap-6 px-6 py-6 lg:px-12 lg:gap-6">
       {/* Brand Logo */}
       <Link to="/" className="inline-flex items-center gap-3 text-white">
         <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/10 ring-1 ring-white/20 shadow-inner">
@@ -97,7 +97,10 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white p-2 shadow-2xl border border-slate-100 text-slate-800 z-50 animate-fadeIn">
                   <button
                     type="button"
-                    onClick={() => navigate("/profile")}
+                    onClick={() => {
+                      navigate("/profile");
+                      setShowProfileMenu(false);
+                    }}
                     className="w-full cursor-pointer text-left p-3 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                   >
                     <p className="font-bold text-sm text-slate-900">

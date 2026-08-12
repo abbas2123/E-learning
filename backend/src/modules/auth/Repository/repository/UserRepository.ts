@@ -6,16 +6,30 @@ export class UserRepository implements IUserRepository {
   private toEntity(document: typeof UserModel.prototype): User {
     return User.reconstruct({
       id: document.id ?? document._id.toString(),
+
       name: document.name,
+
       email: document.email,
+
       password: document.password,
+
       role: document.role,
+
       provider: document.provider,
+
       isVerified: document.isVerified,
+
       isBlocked: document.isBlocked,
+
       createdAt: document.createdAt,
+
       updatedAt: document.updatedAt,
+
       avatar: document.avatar ?? undefined,
+
+      phone: document.phone ?? undefined,
+
+      location: document.location ?? undefined,
     });
   }
 
@@ -34,6 +48,8 @@ export class UserRepository implements IUserRepository {
       role: user.getRole(),
       provider: user.getProvider(),
       avatar: user.getAvatar() ?? null,
+      phone: user.getPhone() ?? null,
+      location: user.getLocation() ?? null,
     });
     const saved = await doc.save();
     return this.toEntity(saved);
@@ -53,6 +69,10 @@ export class UserRepository implements IUserRepository {
         name: user.getName(),
 
         avatar: user.getAvatar() ?? null,
+
+        phone: user.getPhone() ?? null,
+
+        location: user.getLocation() ?? null,
 
         role: user.getRole(),
 

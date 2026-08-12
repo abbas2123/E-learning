@@ -19,7 +19,7 @@ const ForgotPassword = lazy(
 const ResetPassword = lazy(
   () => import("./features/Auth/screens/ResetPassword"),
 );
-
+const Profile = lazy(() => import("./features/Profile/screen/Profile"));
 function PageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -47,7 +47,7 @@ function App() {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             {/* Protected routes here */}
-            <Route path="/profile" element={<h1>this is my profile</h1>} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
       </Routes>

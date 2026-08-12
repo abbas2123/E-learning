@@ -15,6 +15,9 @@ type CreateUserProps = {
   provider: AuthProvider;
 
   avatar?: string;
+  phone?: string;
+
+  location?: string;
 };
 
 type ReconstructUserProps = {
@@ -39,6 +42,9 @@ type ReconstructUserProps = {
   updatedAt: Date;
 
   avatar?: string;
+  phone?: string;
+
+  location?: string;
 };
 
 export class User {
@@ -54,6 +60,8 @@ export class User {
     private readonly createdAt: Date,
     private updatedAt: Date,
     private avatar?: string,
+    private phone?: string,
+    private location?: string,
   ) {}
 
   static create(props: CreateUserProps): User {
@@ -81,6 +89,9 @@ export class User {
       now,
 
       props.avatar,
+      props.phone,
+
+      props.location,
     );
   }
 
@@ -107,6 +118,9 @@ export class User {
       props.updatedAt,
 
       props.avatar,
+      props.phone,
+
+      props.location,
     );
   }
   getId() {
@@ -136,13 +150,41 @@ export class User {
   getPassword(): string | null {
     return this.password;
   }
-  updateProfile(name: string, avatar?: string): void {
-    if (!name.trim()) {
-      throw new Error("Name cannot be empty.");
+  getPhone() {
+    return this.phone;
+  }
+
+  getLocation() {
+    return this.location;
+  }
+  updateProfile(
+    name?: string,
+    phone?: string,
+    location?: string,
+    avatar?: string,
+  ): void {
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+
+      if (!trimmedName) {
+        throw new Error("Name cannot be empty.");
+      }
+
+      this.name = trimmedName;
     }
 
-    this.name = name;
-    this.avatar = avatar;
+    if (phone !== undefined) {
+      this.phone = phone.trim() || undefined;
+    }
+
+    if (location !== undefined) {
+      this.location = location.trim() || undefined;
+    }
+
+    if (avatar !== undefined) {
+      this.avatar = avatar;
+    }
+
     this.updatedAt = new Date();
   }
 
@@ -189,6 +231,9 @@ export class User {
       provider: this.provider,
 
       avatar: this.avatar,
+      phone: this.phone,
+
+      location: this.location,
 
       isVerified: this.isVerified,
 

@@ -12,6 +12,7 @@ import { AuthControler } from "../controllers/AuthController";
 import { EmailService } from "../Repository/services/EmailService";
 import { ForgotPassUseCase } from "../useCase/ForgotPasswordUseCase";
 import { ResetPasswordUseCase } from "../useCase/resetPasswordUseCase";
+import { RefreshTokenUseCase } from "../useCase/refreshTokenUseCase";
 const userRepository = new UserRepository();
 const passwordService = new PasswordService();
 const jwtService = new JwtService();
@@ -57,6 +58,7 @@ const resetPasswordUseCase = new ResetPasswordUseCase(
   userRepository,
   passwordService,
 );
+const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, jwtService);
 export const authController = new AuthControler(
   registerUseCase,
   loginUseCase,
@@ -64,4 +66,5 @@ export const authController = new AuthControler(
   resendOtpUseCase,
   forgotpassUseCase,
   resetPasswordUseCase,
+  refreshTokenUseCase
 );
