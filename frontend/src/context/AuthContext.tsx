@@ -22,6 +22,7 @@ import {
 type AuthContextType = {
   isLoggedIn: boolean;
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   accessToken: string | null;
   login: (credentials: LoginPayload) => Promise<AuthResponse>;
   register: (payload: RegisterPayload) => Promise<AuthResponse>;
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginPayload): Promise<AuthResponse> => {
     const response = await LoginUser(credentials);
+    console.log("respone", response.user);
     if (response.user && response.accessToken) {
       const formattedUser = formatBackendUser(response.user);
       setUser(formattedUser);
@@ -83,32 +85,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response;
   };
 
- const verifyOtp = async (
-   payload: VerifyOtpPayload,
- ): Promise<VerifyOtpResponse> => {
-   const response = await verifyOtpApi(payload);
+  const verifyOtp = async (
+    payload: VerifyOtpPayload,
+  ): Promise<VerifyOtpResponse> => {
+    const response = await verifyOtpApi(payload);
 
-   // Password reset flow
-   if (response.type === "PASSWORD_RESET") {
-     return response;
-   }
+    // Password reset flow
+    if (response.type === "PASSWORD_RESET") {
+      return response;
+    }
 
-   // Email verification flow
-   if (!response.user || !response.accessToken) {
-     throw new Error("Invalid verification response from server.");
-   }
+    // Email verification flow
+    if (!response.user || !response.accessToken) {
+      throw new Error("Invalid verification response from server.");
+    }
 
-   const formattedUser = formatBackendUser(response.user);
+    const formattedUser = formatBackendUser(response.user);
 
-   setUser(formattedUser);
-   setAccessToken(response.accessToken);
-   setIsLoggedIn(true);
+    setUser(formattedUser);
+    setAccessToken(response.accessToken);
+    setIsLoggedIn(true);
 
-   return {
-     ...response,
-     user: formattedUser,
-   };
- };
+    return {
+      ...response,
+      user: formattedUser,
+    };
+  };
 
   const resendOtp = async (email: string): Promise<void> => {
     await resendOtpApi(email);
@@ -125,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         isLoggedIn,
         user,
+        setUser,
         accessToken,
         login,
         register,
