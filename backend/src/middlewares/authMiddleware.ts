@@ -15,6 +15,7 @@ export async function authMiddleware(
 ) {
   try {
     const authHeader = req.headers.authorization;
+    // console.log("authheader", authHeader);
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -23,8 +24,9 @@ export async function authMiddleware(
     }
 
     const token = authHeader.split(" ")[1];
+    console.log("token", token);
     const decoded = jwtService.verifyAccessToken(token);
-
+    console.log("decoded:", decoded);
     if (!decoded || !decoded.userId) {
       return res.status(401).json({
         success: false,

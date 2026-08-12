@@ -10,6 +10,7 @@ import { ResendOtpDto } from "../dtos/ResendOtpDto";
 import { ForgotPassUseCase } from "../useCase/ForgotPasswordUseCase";
 import { ResetPasswordUseCase } from "../useCase/resetPasswordUseCase";
 import { ResetPasswordDto } from "../dtos/ResetPasswordDto";
+import { RefreshTokenUseCase } from "../useCase/refreshTokenUseCase";
 export class AuthControler {
   constructor(
     private readonly registeruseCase: RegisterUseCase,
@@ -18,6 +19,7 @@ export class AuthControler {
     private readonly resendOtpuseCase: ResendOtpUseCase,
     private readonly forgotPasswordUsecase: ForgotPassUseCase,
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
   ) {}
 
   async register(req: Request, res: Response, next: NextFunction) {
@@ -48,11 +50,13 @@ export class AuthControler {
         password: req.body.password,
       };
       const result = await this.loginuseCase.execute(dto);
-
+      console.log("efefe", process.env.NODE_ENV === "production");
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: "/",
       });
 
       return res.status(200).json({
@@ -97,6 +101,9 @@ export class AuthControler {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+
+        path: "/",
       });
 
       return res.status(200).json({
@@ -157,6 +164,28 @@ export class AuthControler {
         success: true,
 
         message: "Password reset successfully.",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Refresh token missing.",
+        });
+      }
+
+      const result = await this.refreshTokenUseCase.execute(refreshToken);
+
+      return res.status(200).json({
+        success: true,
+        accessToken: result.accessToken,
       });
     } catch (error) {
       next(error);

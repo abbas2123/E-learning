@@ -63,6 +63,7 @@ export class LoginUseCase {
         email: user.getEmail(),
         role: user.getRole(),
         isVerified: user.isEmailVerified(),
+        avatar: user.getAvatar(),
       },
       accessToken,
       refreshToken,
