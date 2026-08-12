@@ -29,6 +29,7 @@ export type AuthResponse = {
     id?: string;
     name: string;
     email: string;
+    avatar: string;
     role?: string;
     isVerified?: boolean;
   };
@@ -101,12 +102,12 @@ export function formatBackendUser(backendUser: AuthResponse["user"]): User {
     id: backendUser._id || backendUser.id || "usr_" + Date.now(),
     name: backendUser.name,
     email: backendUser.email,
-    avatar:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    avatar: backendUser.avatar,
     role: backendUser.role || "Student",
     enrolledCount: 0,
     activeCourses: 0,
     gpa: "N/A",
+    authProvider: "local",
   };
 }
 

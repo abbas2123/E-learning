@@ -1,49 +1,118 @@
-import axios from "axios";
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
-// Request Interceptor: Attach Authorization header if access token exists
+// Attach access token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("totc_token");
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
-// Response Interceptor: Format error messages and preserve custom backend flags (e.g. requireOtp)
+// Handle expired access token
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+
+  async (error: AxiosError) => {
+    const status = error.response?.status;
+
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    const requestUrl = originalRequest?.url || "";
+
+    const isAuthRequest =
+      requestUrl.includes("/api/auth/login") ||
+      requestUrl.includes("/api/auth/register") ||
+      requestUrl.includes("/api/auth/verify-otp") ||
+      requestUrl.includes("/api/auth/resend-otp") ||
+      requestUrl.includes("/api/auth/forgot-password") ||
+      requestUrl.includes("/api/auth/reset-password") ||
+      requestUrl.includes("/api/auth/refresh");
+
+    /*
+     * Access token expired
+     */
+    if (status === 401 && !isAuthRequest && !originalRequest?._retry) {
+      originalRequest._retry = true;
+
+      try {
+        console.log("Access token expired. Refreshing...");
+
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/api/auth/refresh`,
+          {},
+          {
+            withCredentials: true,
+          },
+        );
+        console.log("refresh:", refreshResponse);
+        const newAccessToken = refreshResponse.data.accessToken;
+
+        if (!newAccessToken) {
+          throw new Error("No access token returned.");
+        }
+
+        console.log("New access token received.");
+
+        // Save new access token
+        localStorage.setItem("totc_token", newAccessToken);
+
+        // Attach new token to original request
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+        // Retry original request
+        return apiClient.request(originalRequest);
+      } catch (refreshError) {
+        console.log("Refresh token failed.");
+
+        localStorage.removeItem("totc_token");
+        localStorage.removeItem("totc_user");
+        localStorage.removeItem("totc_is_logged_in");
+
+        window.location.href = "/login";
+
+        return Promise.reject(refreshError);
+      }
+    }
+
+    /*
+     * Normal error handling
+     */
     const customMessage =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message ||
-      "An unexpected network error occurred.";
+      error.response?.data &&
+      typeof error.response.data === "object" &&
+      "message" in error.response.data
+        ? String(error.response.data.message)
+        : error.message || "An unexpected network error occurred.";
 
     const customError: any = new Error(customMessage);
+
     if (error.response?.data) {
       Object.assign(customError, error.response.data);
     }
+
     customError.response = error.response;
 
     return Promise.reject(customError);
-  }
+  },
 );
 
 export default apiClient;
