@@ -7,7 +7,7 @@ export default function AppLayout() {
     <div className="flex min-h-screen w-full flex-col bg-white">
       {/* Full width navbar */}
 
-      <header className="absolute inset-x-0 top-0 z-50 w-full bg-[#53C4C8]">
+      <header className="relative z-50 w-full bg-[#53C4C8]">
         <Navbar />
       </header>
 

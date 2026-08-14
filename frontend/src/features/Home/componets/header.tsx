@@ -13,7 +13,7 @@ const guestNavItems = [
 
 const userNavItems = [
   { name: "Dashboard", href: "#dashboard" },
-  { name: "My Courses", href: "#my-courses" },
+  { name: "My Courses", href: "/course" },
   { name: "Live Classes", href: "#live-class" },
   { name: "Gradebook", href: "#gradebook" },
   { name: "Discussions", href: "#discussions" },

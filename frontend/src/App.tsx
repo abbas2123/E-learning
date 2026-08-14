@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 import AppLayout from "./layouts/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CourseDetailsScreen from "./features/course/screen/CourseDetailsScreen";
 
 const HomePage = lazy(() => import("./features/Home/screens/HomePage"));
 
@@ -11,6 +12,7 @@ const Login = lazy(() => import("./features/Auth/screens/Login"));
 const Register = lazy(() => import("./features/Auth/screens/Register"));
 
 const VerifyOtp = lazy(() => import("./features/Auth/screens/VerifyOtp"));
+const Course = lazy(() => import("./features/course/screen/course"));
 
 const ForgotPassword = lazy(
   () => import("./features/Auth/screens/ForgotPassword"),
@@ -48,6 +50,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             {/* Protected routes here */}
             <Route path="/profile" element={<Profile />} />
+            <Route path="/course" element={<Course />} />
+            <Route path="/course/:courseId" element={<CourseDetailsScreen />} />
           </Route>
         </Route>
       </Routes>
