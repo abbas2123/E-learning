@@ -1,22 +1,38 @@
 import type { Request, Response, NextFunction } from "express";
+import { AppError } from "../core/errors/AppError";
+import { Logger } from "../core/logger/Logger";
 
 export function errorHandler(
-  err: Error,
-  _req: Request,
+  err: any,
+  req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ) {
   const isDev = process.env.NODE_ENV !== "production";
+  const statusCode = err.statusCode || (err.status ? Number(err.status) : 500);
+  const code = err.code || (statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST");
+  const requestId = req.requestId;
 
-  console.error(`[ERROR] ${err.message}`);
-  if (isDev) console.error(err.stack);
+  Logger.error(err.message || "Unhandled server error", {
+    requestId,
+    statusCode,
+    code,
+    path: req.path,
+    method: req.method,
+    stack: isDev ? err.stack : undefined,
+  });
 
-  const statusCode =
-    err.message === "User already exists." ? 409 : 500;
+  // Safe message mapping to avoid exposing MongoDB / JWT internals in production
+  let message = err.message || "An unexpected error occurred.";
+  if (!isDev && statusCode === 500 && !(err instanceof AppError)) {
+    message = "Internal Server Error. Please contact support if the problem persists.";
+  }
 
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
-    ...(isDev && { stack: err.stack }),
+    message,
+    code,
+    ...(err.details ? { details: err.details } : {}),
+    ...(requestId ? { requestId } : {}),
   });
 }

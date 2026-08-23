@@ -12,6 +12,7 @@ export interface Course {
   price: number;
   discountPrice?: number;
   status: "draft" | "published" | "archived";
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +22,7 @@ export interface CourseSection {
   courseId: string;
   title: string;
   description?: string;
+  order?: number;
   position: number;
   lessons: Lesson[];
 }
@@ -33,8 +35,10 @@ export interface Lesson {
   type: "video" | "text" | "quiz" | "assignment";
   videoUrl?: string;
   duration: number;
+  order?: number;
   position: number;
   isPreview: boolean;
+  resources?: LessonResource[];
 }
 
 export interface LessonNote {
@@ -42,6 +46,7 @@ export interface LessonNote {
   lessonId: string;
   title: string;
   content: string;
+  order?: number;
   position: number;
 }
 

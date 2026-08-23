@@ -1,5 +1,5 @@
 interface Course {
-  id: number;
+  id: string | number;
   category: string;
   title: string;
   description: string;

@@ -23,6 +23,10 @@ export class LoginUseCase {
       throw new Error("User does not exist. Please create an account.");
     }
 
+    if (user.getRole() === "admin") {
+      throw new Error("Admin accounts cannot log in as a student. Please use the Admin Login.");
+    }
+
     const hashedPassword = await user.getPassword();
     if (!hashedPassword) {
       throw new Error("Password not found.");

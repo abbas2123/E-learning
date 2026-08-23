@@ -13,6 +13,7 @@ import { EmailService } from "../Repository/services/EmailService";
 import { ForgotPassUseCase } from "../useCase/ForgotPasswordUseCase";
 import { ResetPasswordUseCase } from "../useCase/resetPasswordUseCase";
 import { RefreshTokenUseCase } from "../useCase/refreshTokenUseCase";
+import { AdminLoginUseCase } from "../useCase/AdminLoginUseCase";
 const userRepository = new UserRepository();
 const passwordService = new PasswordService();
 const jwtService = new JwtService();
@@ -59,12 +60,18 @@ const resetPasswordUseCase = new ResetPasswordUseCase(
   passwordService,
 );
 const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, jwtService);
+const adminLoginUseCase = new AdminLoginUseCase(
+  userRepository,
+  passwordService,
+  jwtService,
+);
 export const authController = new AuthControler(
   registerUseCase,
   loginUseCase,
+  adminLoginUseCase,
   verifyOtpUseCase,
   resendOtpUseCase,
   forgotpassUseCase,
   resetPasswordUseCase,
-  refreshTokenUseCase
+  refreshTokenUseCase,
 );

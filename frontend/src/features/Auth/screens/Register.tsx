@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 
 export default function Register() {
-  const { isLoggedIn, register } = useAuth();
+  const { isLoggedIn, user, register } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -31,6 +31,9 @@ export default function Register() {
 
   // Prevent logged-in users from staying on register page (e.g. via back button)
   if (isLoggedIn) {
+    if (user?.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

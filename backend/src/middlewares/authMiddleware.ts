@@ -6,6 +6,7 @@ const jwtService = new JwtService();
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
+  userRole?: string;
 }
 
 export async function authMiddleware(
@@ -53,6 +54,7 @@ export async function authMiddleware(
     }
 
     req.userId = decoded.userId;
+    req.userRole = user.role;
     next();
   } catch (error) {
     return res.status(401).json({

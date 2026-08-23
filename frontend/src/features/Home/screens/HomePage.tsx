@@ -9,6 +9,7 @@ import StatsSection from "../sections/StatsSection";
 import AboutSection from "../sections/AboutSection";
 import CloudSoftwareSection from "../sections/CloudSoftwareSection";
 import FeaturesSection from "../sections/FeaturesSection";
+import CategoriesSection from "../sections/CategoriesSection";
 import CoursesSection, { type CourseItem } from "../sections/CoursesSection";
 import TestimonialsSection from "../sections/TestimonialsSection";
 import NewsSection from "../sections/NewsSection";
@@ -22,9 +23,8 @@ export default function HomePage() {
   const [summary, setSummary] = useState<DashboardSummaryResponse | undefined>();
   const [activeCourses, setActiveCourses] = useState<ActiveStudentCourse[] | undefined>();
   const [catalogCourses, setCatalogCourses] = useState<CourseItem[] | undefined>();
-console.log("islogedIn",isLoggedIn)
+
   useEffect(() => {
-    console.log("islogedInsvdeeveve", isLoggedIn);
     dashboardService
       .getCoursesCatalog()
       .then((data) => setCatalogCourses(data))
@@ -40,33 +40,38 @@ console.log("islogedIn",isLoggedIn)
         .getActiveCourses()
         .then((data) => setActiveCourses(data))
         .catch((err) => console.error("Error fetching active courses:", err));
+    } else {
+      setSummary(undefined);
+      setActiveCourses(undefined);
     }
   }, [isLoggedIn]);
 
   return (
     <>
-      {/* Dynamic Hero — adapts based on auth state */}
+      {/* Dynamic Hero */}
       {isLoggedIn ? <LoggedInHero summary={summary} /> : <HeroSection />}
 
-      {/* Logged-In: personal dashboard widgets */}
+      {/* Logged-In Student Dashboard */}
       {isLoggedIn && <UserDashboardWidgets activeCourses={activeCourses} />}
 
-      {/* Guest-only: overview & marketing sections */}
+      {/* Popular Categories from DB */}
+      <CategoriesSection />
+
+      {/* Featured Courses Catalog */}
+      <CoursesSection courses={catalogCourses} />
+
+      {/* Guest-only sections */}
       {!isLoggedIn && (
         <>
           <StatsSection />
           <CloudSoftwareSection />
           <AboutSection />
+          <FeaturesSection />
+          <NewsSection />
         </>
       )}
 
-      {/* Shared sections */}
-      <FeaturesSection />
-      <CoursesSection courses={catalogCourses} />
-
-      {/* Guest-only: news */}
-      {!isLoggedIn && <NewsSection />}
-
+      {/* Reviews & Testimonials */}
       <TestimonialsSection />
     </>
   );

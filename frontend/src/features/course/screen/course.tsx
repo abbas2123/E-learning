@@ -1,81 +1,97 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import CourseCard, { type Course } from "../components/CourseCard";
-
 import CourseHeader from "../components/CourseHeader";
 import CourseFilter from "../components/CourseFilter";
-
-const courses: Course[] = [
-  {
-    id: "1",
-    title: "Full Stack MERN Development",
-    description:
-      "Learn to build modern full-stack applications using React, Node.js, Express and MongoDB.",
-    thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-    category: "Web Development",
-    level: "Intermediate",
-    duration: 42,
-    lessons: 86,
-    price: 2999,
-    originalPrice: 4999,
-  },
-  {
-    id: "2",
-    title: "React.js Complete Guide",
-    description:
-      "Learn React from fundamentals to advanced concepts and build real-world applications.",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee",
-    category: "Frontend",
-    level: "Intermediate",
-    duration: 28,
-    lessons: 54,
-    price: 1999,
-    originalPrice: 3499,
-  },
-  {
-    id: "3",
-    title: "Node.js Backend Development",
-    description:
-      "Build scalable REST APIs and backend applications using Node.js and Express.",
-    thumbnail: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31",
-    category: "Backend",
-    level: "Advanced",
-    duration: 31,
-    lessons: 63,
-    price: 2499,
-    originalPrice: 3999,
-  },
-  {
-    id: "4",
-    title: "JavaScript Fundamentals",
-    description:
-      "Master JavaScript fundamentals and develop a strong foundation for modern web development.",
-    thumbnail: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55",
-    category: "Programming",
-    level: "Beginner",
-    duration: 18,
-    lessons: 36,
-    price: 1499,
-    originalPrice: 2499,
-  },
-];
+import { getCourses } from "../service/courseService";
+import { CourseCardSkeletonGrid } from "../../../components/ui/Skeleton";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import { ArrowUpDown } from "lucide-react";
 
 const CourseScreen = () => {
+  const [searchParams] = useSearchParams();
+  const [coursesList, setCoursesList] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState(
+    searchParams.get("category") || "All",
+  );
+  const [selectedLevel, setSelectedLevel] = useState("All Levels");
+  const [selectedPrice, setSelectedPrice] = useState("All Prices");
+  const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high">(
+    "newest",
+  );
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchAllCourses() {
+      try {
+        const data = await getCourses();
+        setCoursesList(data || []);
+      } catch (err) {
+        console.error("Failed to load courses from backend", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAllCourses();
+  }, []);
+
+  const resetFilters = () => {
+    setSearch("");
+    setSelectedCategory("All");
+    setSelectedLevel("All Levels");
+    setSelectedPrice("All Prices");
+    setSortBy("newest");
+  };
+
   const filteredCourses = useMemo(() => {
-    return courses.filter((course) => {
+    let result = coursesList.filter((course) => {
+      // Search
       const matchesSearch =
         course.title.toLowerCase().includes(search.toLowerCase()) ||
-        course.description.toLowerCase().includes(search.toLowerCase());
+        (course.description &&
+          course.description.toLowerCase().includes(search.toLowerCase()));
 
+      // Category
       const matchesCategory =
-        selectedCategory === "All" || course.category === selectedCategory;
+        selectedCategory === "All" ||
+        course.category.toLowerCase() === selectedCategory.toLowerCase();
 
-      return matchesSearch && matchesCategory;
+      // Level
+      const matchesLevel =
+        selectedLevel === "All Levels" ||
+        (course.level &&
+          course.level.toLowerCase() === selectedLevel.toLowerCase());
+
+      // Price
+      const matchesPrice =
+        selectedPrice === "All Prices" ||
+        (selectedPrice === "Free" && course.price === 0) ||
+        (selectedPrice === "Paid" && course.price > 0);
+
+      return matchesSearch && matchesCategory && matchesLevel && matchesPrice;
     });
-  }, [search, selectedCategory]);
+
+    // Sorting
+    if (sortBy === "price-low") {
+      result = [...result].sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price-high") {
+      result = [...result].sort((a, b) => b.price - a.price);
+    }
+
+    return result;
+  }, [
+    coursesList,
+    search,
+    selectedCategory,
+    selectedLevel,
+    selectedPrice,
+    sortBy,
+  ]);
 
   const handleCourseClick = (course: Course) => {
     navigate(`/course/${course.id}`);
@@ -89,19 +105,41 @@ const CourseScreen = () => {
         <CourseFilter
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
+          selectedLevel={selectedLevel}
+          onLevelChange={setSelectedLevel}
+          selectedPrice={selectedPrice}
+          onPriceChange={setSelectedPrice}
+          onReset={resetFilters}
         />
 
-        {/* Course count */}
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">All Courses</h2>
+        {/* Results Header & Sorting */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Explore Catalog</h2>
+            <p className="text-xs text-slate-500">
+              Showing {filteredCourses.length} of {coursesList.length} total courses
+            </p>
+          </div>
 
-          <p className="text-sm text-slate-500">
-            {filteredCourses.length} courses
-          </p>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown size={15} className="text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500">Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="rounded-xl border border-slate-200 bg-white p-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-500"
+            >
+              <option value="newest">Newest First</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+            </select>
+          </div>
         </div>
 
-        {/* Courses */}
-        {filteredCourses.length > 0 ? (
+        {/* Courses Display */}
+        {loading ? (
+          <CourseCardSkeletonGrid count={6} />
+        ) : filteredCourses.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredCourses.map((course) => (
               <CourseCard
@@ -112,15 +150,12 @@ const CourseScreen = () => {
             ))}
           </div>
         ) : (
-          <div className="flex min-h-64 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white">
-            <div className="text-center">
-              <h3 className="font-semibold text-slate-900">No courses found</h3>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Try changing your search or category.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            title="No courses match your filters"
+            description="Try adjusting your search criteria or reset filters to browse the complete catalog."
+            actionLabel="Reset All Filters"
+            onAction={resetFilters}
+          />
         )}
       </div>
     </main>

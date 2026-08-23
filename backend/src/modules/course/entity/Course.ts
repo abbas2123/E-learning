@@ -96,4 +96,8 @@ export class Course {
   public get updatedAt(): Date {
     return this.props.updatedAt;
   }
+
+  public toJSON(): CourseProps {
+    return { ...this.props };
+  }
 }

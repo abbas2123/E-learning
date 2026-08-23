@@ -8,7 +8,9 @@ export enum CourseLevel {
 
 export enum CourseStatus {
   DRAFT = "draft",
+  PENDING = "pending",
   PUBLISHED = "published",
+  REJECTED = "rejected",
   ARCHIVED = "archived",
 }
 
@@ -98,6 +100,11 @@ const CourseSchema = new Schema(
       index: true,
     },
 
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
+
     requirements: {
       type: [String],
       default: [],
@@ -113,5 +120,7 @@ const CourseSchema = new Schema(
     versionKey: false,
   },
 );
+
+CourseSchema.index({ createdBy: 1, status: 1 });
 
 export const CourseModel = model("Course", CourseSchema);

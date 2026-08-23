@@ -11,10 +11,12 @@ import { ForgotPassUseCase } from "../useCase/ForgotPasswordUseCase";
 import { ResetPasswordUseCase } from "../useCase/resetPasswordUseCase";
 import { ResetPasswordDto } from "../dtos/ResetPasswordDto";
 import { RefreshTokenUseCase } from "../useCase/refreshTokenUseCase";
+import { AdminLoginUseCase } from "../useCase/AdminLoginUseCase";
 export class AuthControler {
   constructor(
     private readonly registeruseCase: RegisterUseCase,
     private readonly loginuseCase: LoginUseCase,
+    private readonly adminLoginUseCase: AdminLoginUseCase,
     private readonly verifyOtpuseCase: VerifyOtpUseCase,
     private readonly resendOtpuseCase: ResendOtpUseCase,
     private readonly forgotPasswordUsecase: ForgotPassUseCase,
@@ -185,6 +187,37 @@ export class AuthControler {
 
       return res.status(200).json({
         success: true,
+        accessToken: result.accessToken,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async adminLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.adminLoginUseCase.execute({
+        email: req.body.email,
+        password: req.body.password,
+      });
+
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
+
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: result.user.getId(),
+          name: result.user.getName(),
+          email: result.user.getEmail(),
+          role: result.user.getRole(),
+          isVerified: result.user.isEmailVerified(),
+        },
         accessToken: result.accessToken,
       });
     } catch (error) {

@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 
 export default function Login() {
-  const { isLoggedIn, login } = useAuth();
+  const { isLoggedIn, user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,6 +29,9 @@ export default function Login() {
 
   // Prevent logged-in users from staying on login page (e.g. via back button)
   if (isLoggedIn) {
+    if (user?.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

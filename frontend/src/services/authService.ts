@@ -134,3 +134,12 @@ export async function resetPassword(
 
   return response.data;
 }
+
+export async function adminLogin(payload: LoginPayload): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>(
+    "/api/auth/admin/login",
+    payload,
+  );
+
+  return response.data;
+}

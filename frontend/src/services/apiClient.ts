@@ -7,13 +7,17 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Attach access token
+// Attach access token & X-Request-ID
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("totc_token");
 
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (config.headers && !config.headers["X-Request-ID"]) {
+      config.headers["X-Request-ID"] = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     }
 
     return config;
@@ -23,7 +27,7 @@ apiClient.interceptors.request.use(
   },
 );
 
-// Handle expired access token
+// Handle expired access token & refresh rotation
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -48,14 +52,12 @@ apiClient.interceptors.response.use(
       requestUrl.includes("/api/auth/refresh");
 
     /*
-     * Access token expired
+     * Access token expired -> try refreshing automatically once
      */
     if (status === 401 && !isAuthRequest && !originalRequest?._retry) {
       originalRequest._retry = true;
 
       try {
-        console.log("Access token expired. Refreshing...");
-
         const refreshResponse = await axios.post(
           `${API_BASE_URL}/api/auth/refresh`,
           {},
@@ -63,14 +65,11 @@ apiClient.interceptors.response.use(
             withCredentials: true,
           },
         );
-        console.log("refresh:", refreshResponse);
         const newAccessToken = refreshResponse.data.accessToken;
 
         if (!newAccessToken) {
           throw new Error("No access token returned.");
         }
-
-        console.log("New access token received.");
 
         // Save new access token
         localStorage.setItem("totc_token", newAccessToken);
@@ -81,8 +80,6 @@ apiClient.interceptors.response.use(
         // Retry original request
         return apiClient.request(originalRequest);
       } catch (refreshError) {
-        console.log("Refresh token failed.");
-
         localStorage.removeItem("totc_token");
         localStorage.removeItem("totc_user");
         localStorage.removeItem("totc_is_logged_in");
@@ -100,7 +97,7 @@ apiClient.interceptors.response.use(
       error.response?.data &&
       typeof error.response.data === "object" &&
       "message" in error.response.data
-        ? String(error.response.data.message)
+        ? String((error.response.data as any).message)
         : error.message || "An unexpected network error occurred.";
 
     const customError: any = new Error(customMessage);

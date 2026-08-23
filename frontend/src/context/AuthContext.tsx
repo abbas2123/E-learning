@@ -12,6 +12,7 @@ import {
   verifyOtpApi,
   resendOtpApi,
   formatBackendUser,
+  adminLogin as adminLoginApi,
   type RegisterPayload,
   type LoginPayload,
   type VerifyOtpPayload,
@@ -24,7 +25,11 @@ type AuthContextType = {
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   accessToken: string | null;
+
   login: (credentials: LoginPayload) => Promise<AuthResponse>;
+
+  adminLogin: (credentials: LoginPayload) => Promise<AuthResponse>;
+
   register: (payload: RegisterPayload) => Promise<AuthResponse>;
   verifyOtp: (payload: VerifyOtpPayload) => Promise<VerifyOtpResponse>;
   resendOtp: (email: string) => Promise<void>;
@@ -79,7 +84,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return response;
   };
+  const adminLogin = async (
+    credentials: LoginPayload,
+  ): Promise<AuthResponse> => {
+    const response = await adminLoginApi(credentials);
 
+    if (!response.user || !response.accessToken) {
+      throw new Error("Invalid admin login response from server.");
+    }
+
+    if (response.user.role !== "admin") {
+      throw new Error("You are not authorized as an administrator.");
+    }
+
+    const formattedUser = formatBackendUser(response.user);
+
+    setUser(formattedUser);
+    setAccessToken(response.accessToken);
+    setIsLoggedIn(true);
+
+    return response;
+  };
   const register = async (payload: RegisterPayload): Promise<AuthResponse> => {
     const response = await registerUser(payload);
     return response;
@@ -130,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser,
         accessToken,
         login,
+        adminLogin,
         register,
         verifyOtp,
         resendOtp,

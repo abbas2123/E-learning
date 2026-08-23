@@ -17,4 +17,5 @@ router.post(
 
   authController.refreshToken.bind(authController),
 );
+router.post("/admin/login", authController.adminLogin.bind(authController));
 export default router;

@@ -1,23 +1,48 @@
 import mongoose from "mongoose";
 import app from "./app.js";
+import { Logger } from "./core/logger/Logger.js";
 
 const PORT = process.env.PORT ?? 3000;
-const MONGO_URI = process.env.MONGODB_URI ?? "";
+const MONGO_URI = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
 
 async function bootstrap() {
   try {
     if (!MONGO_URI) {
-      throw new Error("MONGO_URI is not defined in .env");
+      throw new Error("MONGODB_URI is not defined in environment variables.");
     }
 
     await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB connected");
+    Logger.info("✅ MongoDB connected successfully");
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, () => {
+      Logger.info(`🚀 TOTC API Server running on http://localhost:${PORT}`);
     });
-  } catch (err) {
-    console.error("❌ Failed to start server:", err);
+
+    const shutdown = async (signal: string) => {
+      Logger.info(`Received ${signal}. Starting graceful shutdown...`);
+      server.close(async () => {
+        Logger.info("HTTP server closed.");
+        try {
+          await mongoose.connection.close();
+          Logger.info("MongoDB connection closed.");
+          process.exit(0);
+        } catch (err) {
+          Logger.error("Error closing MongoDB connection", { error: err });
+          process.exit(1);
+        }
+      });
+
+      // Force exit after 10s timeout
+      setTimeout(() => {
+        Logger.error("Forcefully shutting down server due to timeout.");
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+  } catch (err: any) {
+    Logger.error("❌ Failed to start TOTC server", { error: err?.message || err });
     process.exit(1);
   }
 }

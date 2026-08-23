@@ -1,171 +1,272 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-const guestNavItems = [
-  { name: "Home", href: "/" },
-  { name: "Courses", href: "#courses" },
-  { name: "Careers", href: "#!" },
-  { name: "Blog", href: "#!" },
-  { name: "About Us", href: "#about" },
-];
-
-const userNavItems = [
-  { name: "Dashboard", href: "#dashboard" },
-  { name: "My Courses", href: "/course" },
-  { name: "Live Classes", href: "#live-class" },
-  { name: "Gradebook", href: "#gradebook" },
-  { name: "Discussions", href: "#discussions" },
-];
+import {
+  Search,
+  Heart,
+  Bell,
+  Menu,
+  X,
+  User as UserIcon,
+  LogOut,
+  BookOpen,
+  LayoutDashboard,
+} from "lucide-react";
+import { SearchModal } from "../../../components/SearchModal";
+import { Avatar } from "../../../components/ui/Avatar";
 
 export default function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-  const currentNavItems = isLoggedIn ? userNavItems : guestNavItems;
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+
+  const guestNavItems = [
+    { name: "Home", href: "/" },
+    { name: "Courses", href: "/course" },
+    { name: "Categories", href: "/categories" },
+  ];
+
+  const studentNavItems = [
+    { name: "Home", href: "/" },
+    { name: "Explore Courses", href: "/course" },
+    { name: "My Learning", href: "/my-learning" },
+  ];
+
+  const navItems = isLoggedIn ? studentNavItems : guestNavItems;
+
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    setMobileMenuOpen(false);
+    logout();
+    toast.success("Signed out successfully 👋");
+    navigate("/login", { replace: true });
+  };
+
   return (
-    <div className="relative flex w-full items-center justify-between gap-6 px-6 py-6 lg:px-12 lg:gap-6">
-      {/* Brand Logo */}
-      <Link to="/" className="inline-flex items-center gap-3 text-white">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white/10 ring-1 ring-white/20 shadow-inner">
-          <img src="/image.png" alt="TOTC logo" className="h-6 w-6" />
-        </div>
-        <span className="text-lg font-bold tracking-tight">TOTC</span>
-      </Link>
-
-      {/* Navigation Links */}
-      <nav className="hidden flex-1 justify-center gap-8 text-sm font-medium text-white/90 lg:flex">
-        {currentNavItems.map((item) => (
-          <Link
-            key={item.name}
-            to={item.href}
-            className="transition hover:text-white hover:scale-105"
-          >
-            {item.name}
+    <>
+      <header className="relative w-full border-b border-white/10 bg-slate-900 text-white shadow-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          {/* Logo & Brand */}
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+              <BookOpen size={22} />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">
+              TOTC
+            </span>
           </Link>
-        ))}
-      </nav>
 
-      {/* User Controls / Auth Buttons */}
-      <div className="flex items-center gap-3">
-        {isLoggedIn && user ? (
-          <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <button className="relative p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-              </svg>
-              <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-900 animate-ping" />
-              <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-rose-500" />
+          {/* Desktop Navigation Links */}
+          <nav className="hidden items-center gap-8 md:flex">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`text-sm font-semibold transition hover:text-indigo-400 ${
+                    isActive ? "text-indigo-400" : "text-slate-300"
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {/* Search Trigger */}
+            <button
+              type="button"
+              onClick={() => setSearchModalOpen(true)}
+              className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3.5 py-1.5 text-xs text-slate-300 transition hover:border-slate-600 hover:text-white"
+            >
+              <Search size={15} />
+              <span className="hidden sm:inline">Search courses...</span>
             </button>
 
-            {/* Profile Dropdown Toggle */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2.5 rounded-full bg-white/10 p-1.5 pr-3 hover:bg-white/20 ring-1 ring-white/20 transition-all"
-              >
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="h-8 w-8 rounded-full object-cover border border-white/40"
-                />
-                <span className="text-sm font-semibold text-white hidden sm:block">
-                  {user.name}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-white/70 transition-transform ${
-                    showProfileMenu ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            {isLoggedIn && user ? (
+              <div className="flex items-center gap-2">
+                {/* Wishlist Link */}
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile")}
+                  className="rounded-full p-2 text-slate-300 transition hover:bg-slate-800 hover:text-rose-400"
+                  title="Wishlist"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
+                  <Heart size={18} />
+                </button>
 
-              {/* Profile Dropdown */}
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white p-2 shadow-2xl border border-slate-100 text-slate-800 z-50 animate-fadeIn">
+                {/* Notifications Link */}
+                <button
+                  type="button"
+                  onClick={() => navigate("/notifications")}
+                  className="relative rounded-full p-2 text-slate-300 transition hover:bg-slate-800 hover:text-indigo-400"
+                  title="Notifications"
+                >
+                  <Bell size={18} />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-900" />
+                </button>
+
+                {/* Profile Dropdown */}
+                <div className="relative ml-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      navigate("/profile");
-                      setShowProfileMenu(false);
-                    }}
-                    className="w-full cursor-pointer text-left p-3 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="flex items-center gap-2 rounded-full p-1 transition hover:bg-slate-800"
                   >
-                    <p className="font-bold text-sm text-slate-900">
-                      {user.name}
-                    </p>
-
-                    <p className="text-xs text-slate-500">{user.email}</p>
-
-                    <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">
-                      {user.role} • GPA {user.gpa}
+                    <Avatar src={user.avatar} name={user.name} size="sm" />
+                    <span className="hidden text-xs font-semibold text-slate-200 lg:block">
+                      {user.name.split(" ")[0]}
                     </span>
                   </button>
 
-                  <div className="py-1">
-                    <a
-                      href="#dashboard"
-                      onClick={() => setShowProfileMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-50 transition-colors"
-                    >
-                      Dashboard Overview
-                    </a>
-                    <a
-                      href="#gradebook"
-                      onClick={() => setShowProfileMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-50 transition-colors"
-                    >
-                      Gradebook & Analytics
-                    </a>
-                  </div>
+                  {/* Dropdown Menu */}
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-slate-100 bg-white p-2 text-slate-800 shadow-2xl z-50">
+                      <div className="border-b border-slate-100 p-3">
+                        <p className="font-bold text-sm text-slate-900">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user.email}
+                        </p>
+                        <span className="mt-2 inline-block rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                          {user.role}
+                        </span>
+                      </div>
 
-                  <div className="pt-1 border-t border-slate-100">
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        logout();
-                        toast.success("Signed out successfully", {
-                          description: "See you next time! 👋",
-                        });
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs font-semibold rounded-xl text-rose-600 hover:bg-rose-50 transition-colors"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate("/profile");
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <UserIcon size={15} />
+                          My Profile
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate("/my-learning");
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <BookOpen size={15} />
+                          My Learning
+                        </button>
+
+                        {user.role === "admin" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              navigate("/admin/dashboard");
+                            }}
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                          >
+                            <LayoutDashboard size={15} />
+                            Admin Panel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="border-t border-slate-100 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                        >
+                          <LogOut size={15} />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="hidden items-center gap-3 md:flex">
+                <Link
+                  to="/login"
+                  className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-200 transition hover:text-white"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition hover:bg-indigo-700"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="rounded-lg p-2 text-slate-300 hover:bg-slate-800 hover:text-white md:hidden"
+            >
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Slide-Out Menu */}
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-800 bg-slate-900 px-4 py-5 md:hidden">
+            <div className="space-y-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white"
+                >
+                  {item.name}
+                </Link>
+              ))}
+
+              {!isLoggedIn && (
+                <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center rounded-xl border border-slate-700 py-2.5 text-xs font-bold text-slate-200"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white"
+                  >
+                    Sign Up
+                  </Link>
                 </div>
               )}
             </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 shadow-md"
-            >
-              Sign Up
-            </Link>
-          </div>
         )}
-      </div>
-    </div>
+      </header>
+
+      {/* Global Search Modal */}
+      <SearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
+    </>
   );
 }
