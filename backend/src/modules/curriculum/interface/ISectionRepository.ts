@@ -13,6 +13,9 @@ export interface LessonDto {
   description?: string;
   type: "video" | "text" | "quiz" | "assignment";
   videoUrl?: string;
+  videoSourceType?: "uploaded" | "youtube" | "vimeo" | "external" | "hls";
+  quizId?: string;
+  questionCount?: number;
   duration: number;
   order: number;
   isPreview: boolean;

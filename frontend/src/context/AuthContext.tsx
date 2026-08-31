@@ -75,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginPayload): Promise<AuthResponse> => {
     const response = await LoginUser(credentials);
-    console.log("respone", response.user);
     if (response.user && response.accessToken) {
       const formattedUser = formatBackendUser(response.user);
       setUser(formattedUser);

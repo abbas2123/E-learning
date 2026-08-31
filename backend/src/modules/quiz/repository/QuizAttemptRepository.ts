@@ -60,6 +60,25 @@ export class QuizAttemptRepository implements IQuizAttemptRepository {
     return docs.map((d) => this.toDto(d));
   }
 
+  async findSubmittedByStudentAndQuiz(studentId: string, quizId: string): Promise<QuizAttemptDto[]> {
+    const docs = await QuizAttemptModel.find({
+      studentId,
+      quizId,
+      status: "submitted",
+    }).sort({ createdAt: -1 });
+    return docs.map((d) => this.toDto(d));
+  }
+
+  async getBestPercentageByStudentAndQuiz(studentId: string, quizId: string): Promise<number> {
+    const docs = await QuizAttemptModel.find({
+      studentId,
+      quizId,
+      status: "submitted",
+    }).select("percentage");
+    if (docs.length === 0) return 0;
+    return Math.max(...docs.map((d) => d.percentage ?? 0));
+  }
+
   async findByQuizId(quizId: string): Promise<QuizAttemptDto[]> {
     const docs = await QuizAttemptModel.find({ quizId }).sort({ createdAt: -1 });
     return docs.map((d) => this.toDto(d));

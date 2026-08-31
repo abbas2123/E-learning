@@ -37,10 +37,6 @@ export const LessonDiscussionTab: React.FC<LessonDiscussionTabProps> = ({
   const [askModalOpen, setAskModalOpen] = useState(false);
   const [selectedDiscussionId, setSelectedDiscussionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDiscussions();
-  }, [courseId, lessonId, page, statusFilter, scope]);
-
   const loadDiscussions = async () => {
     if (!courseId) return;
     try {
@@ -67,6 +63,10 @@ export const LessonDiscussionTab: React.FC<LessonDiscussionTabProps> = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDiscussions();
+  }, [courseId, lessonId, page, statusFilter, scope]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

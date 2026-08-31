@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "../../../middlewares/authMiddleware";
+import type { GetCertificateStatusUseCase } from "../useCase/GetCertificateStatusUseCase";
 import type { GenerateCertificateUseCase } from "../useCase/GenerateCertificateUseCase";
 import type { GetCertificateUseCase } from "../useCase/GetCertificateUseCase";
 import type { GetUserCertificatesUseCase } from "../useCase/GetUserCertificatesUseCase";
@@ -10,6 +11,7 @@ import type { ICertificateRepository } from "../interface/ICertificateRepository
 
 export class CertificateController {
   constructor(
+    private readonly getCertificateStatusUseCase: GetCertificateStatusUseCase,
     private readonly generateCertificateUseCase: GenerateCertificateUseCase,
     private readonly getCertificateUseCase: GetCertificateUseCase,
     private readonly getUserCertificatesUseCase: GetUserCertificatesUseCase,
@@ -18,6 +20,27 @@ export class CertificateController {
     private readonly pdfService: CertificatePdfService,
     private readonly repository: ICertificateRepository,
   ) {}
+
+  async getCertificateStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const userRole = req.userRole;
+      const courseId = String(req.params.courseId);
+
+      const status = await this.getCertificateStatusUseCase.execute({
+        userId,
+        courseId,
+        userRole,
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: status,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   async generateCertificate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {

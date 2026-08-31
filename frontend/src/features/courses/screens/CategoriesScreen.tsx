@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminService, type CategoryItem } from "../../admin/services/adminService";
+import { categoryService, type CategoryItem } from "../../../services/categoryService";
 import { LayoutGrid, ArrowRight, BookOpen, Loader2 } from "lucide-react";
 
 export default function CategoriesScreen() {
@@ -9,7 +9,7 @@ export default function CategoriesScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService
+    categoryService
       .getCategories()
       .then(setCategories)
       .catch(() => {})

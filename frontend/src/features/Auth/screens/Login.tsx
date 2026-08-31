@@ -32,6 +32,9 @@ export default function Login() {
     if (user?.role === "admin") {
       return <Navigate to="/admin/dashboard" replace />;
     }
+    if (user?.role === "instructor") {
+      return <Navigate to="/instructor/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 
@@ -80,6 +83,11 @@ export default function Login() {
         description: "You have successfully logged in.",
       });
 
+      if (response.user?.role === "instructor") {
+        navigate("/instructor/dashboard", { replace: true });
+        return;
+      }
+
       // Replace current entry in history stack so pressing Back won't return to /login
       navigate(from, { replace: true });
     } catch (err: any) {
@@ -87,14 +95,16 @@ export default function Login() {
         err?.requireOtp ||
         err?.response?.data?.requireOtp ||
         (typeof err?.message === "string" &&
-          err.message.toLowerCase().includes("not verified"))
+          err.message.toLowerCase().includes("not verified")) ||
+        (typeof err?.response?.data?.message === "string" &&
+          err.response.data.message.toLowerCase().includes("not verified"))
       ) {
         toast.info("Verification Required", {
           description:
             "Please enter the OTP verification code sent to your email.",
         });
         navigate("/verify-otp", {
-          state: { email: err?.email || email.trim() },
+          state: { email: err?.email || err?.response?.data?.email || email.trim() },
           replace: true,
         });
         return;

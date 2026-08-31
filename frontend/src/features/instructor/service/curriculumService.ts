@@ -44,6 +44,8 @@ export interface CreateLessonPayload {
   description?: string;
   type?: "video" | "text" | "quiz" | "assignment";
   videoUrl?: string;
+  videoSourceType?: "uploaded" | "youtube" | "vimeo" | "external" | "hls";
+  quizId?: string;
   duration?: number;
   isPreview?: boolean;
 }
@@ -78,6 +80,30 @@ export const reorderLessons = async (
   return response.data.data;
 };
 
+export const uploadVideoFile = async (
+  file: File,
+  onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
+): Promise<{ url: string; duration?: number }> => {
+  const formData = new FormData();
+  formData.append("video", file);
+
+  const response = await apiClient.post("/api/instructor/upload-video", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    signal,
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.total && onProgress) {
+        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percent);
+      }
+    },
+  });
+
+  return response.data.data;
+};
+
 const curriculumService = {
   createSection,
   updateSection,
@@ -87,6 +113,7 @@ const curriculumService = {
   updateLesson,
   deleteLesson,
   reorderLessons,
+  uploadVideoFile,
 };
 
 export default curriculumService;

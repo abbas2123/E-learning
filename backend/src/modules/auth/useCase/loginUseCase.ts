@@ -24,7 +24,7 @@ export class LoginUseCase {
     }
 
     if (user.getRole() === "admin") {
-      throw new Error("Admin accounts cannot log in as a student. Please use the Admin Login.");
+      throw new Error("Admin accounts must use the Admin Portal to sign in.");
     }
 
     const hashedPassword = await user.getPassword();
@@ -45,8 +45,9 @@ export class LoginUseCase {
     if (!user.isEmailVerified()) {
       const otp = this.otpService.generateOtp();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const hashedOtp = await this.passwordService.hash(otp);
 
-      await this.otpRepository.saveOtp(email, otp, expiresAt);
+      await this.otpRepository.saveOtp(email, hashedOtp, expiresAt);
       await this.otpService.sendOtp(email, otp);
 
       const err: any = new Error(

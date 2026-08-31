@@ -4,6 +4,7 @@ import { GetAdminStatsUseCase } from "../useCase/GetAdminStatsUseCase";
 import { GetUsersUseCase } from "../useCase/GetUsersUseCase";
 import { ToggleUserBlockUseCase } from "../useCase/ToggleUserBlockUseCase";
 import { CreateUserUseCase } from "../useCase/CreateUserUseCase";
+import { UpdateUserRoleUseCase } from "../useCase/UpdateUserRoleUseCase";
 import { GetCoursesUseCase } from "../useCase/GetCoursesUseCase";
 import { GetPendingCoursesUseCase } from "../useCase/GetPendingCoursesUseCase";
 import { CreateCourseUseCase } from "../useCase/CreateCourseUseCase";
@@ -27,6 +28,7 @@ const getAdminStatsUseCase = new GetAdminStatsUseCase(adminRepository);
 const getUsersUseCase = new GetUsersUseCase(adminRepository);
 const toggleUserBlockUseCase = new ToggleUserBlockUseCase(adminRepository);
 const createUserUseCase = new CreateUserUseCase(adminRepository);
+const updateUserRoleUseCase = new UpdateUserRoleUseCase(adminRepository);
 const getCoursesUseCase = new GetCoursesUseCase(adminRepository);
 const getPendingCoursesUseCase = new GetPendingCoursesUseCase(adminRepository);
 const createCourseUseCase = new CreateCourseUseCase(adminRepository);
@@ -46,6 +48,7 @@ export const adminController = new AdminController(
   getUsersUseCase,
   toggleUserBlockUseCase,
   createUserUseCase,
+  updateUserRoleUseCase,
   getCoursesUseCase,
   getPendingCoursesUseCase,
   createCourseUseCase,

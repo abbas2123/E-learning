@@ -71,6 +71,14 @@ export default function VerifyOtp() {
       }
 
       // Email verification flow
+      if (result.user.role === "instructor" || result.user.role === "admin") {
+        toast.success(`Email verified! Welcome to Instructor Studio, ${result.user.name} 👨‍🏫`, {
+          description: "Your instructor account is now active.",
+        });
+        navigate("/instructor/dashboard", { replace: true });
+        return;
+      }
+
       toast.success(`Email verified! Welcome, ${result.user.name} 🎉`, {
         description: "Your account is now fully active. Enjoy learning!",
       });

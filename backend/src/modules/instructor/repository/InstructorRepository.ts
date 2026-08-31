@@ -56,6 +56,7 @@ export class InstructorRepository implements IInstructorRepository {
       createdBy: doc.createdBy,
       requirements: doc.requirements ?? [],
       learningOutcomes: doc.learningOutcomes ?? [],
+      minCertificateScore: doc.minCertificateScore ?? 70,
       studentCount,
       rating: averageRating,
       reviewCount: reviews.length,
@@ -215,6 +216,61 @@ export class InstructorRepository implements IInstructorRepository {
     const lessons = await LessonModel.find({ courseId });
     if (lessons.length === 0) {
       throw new Error("Course must have at least one lesson before submission.");
+    }
+
+    // 1. Validate Video Lessons have valid video stream source
+    for (const lesson of lessons) {
+      if (lesson.type === "video" && (!lesson.videoUrl || !lesson.videoUrl.trim())) {
+        throw new Error(
+          `Video lesson "${lesson.title}" does not have a video URL or uploaded video. Please provide a video source.`,
+        );
+      }
+    }
+
+    // 2. Validate Quizzes & Questions
+    const { QuizModel } = await import("../../quiz/database/Quiz");
+    const { QuestionModel } = await import("../../quiz/database/Question");
+
+    const quizzes = await QuizModel.find({ courseId });
+    const quizLessons = lessons.filter((l) => l.type === "quiz");
+
+    // Check all quiz lessons have a corresponding Quiz with questions
+    for (const quizLesson of quizLessons) {
+      const quiz = quizzes.find(
+        (q) => q.id === quizLesson.quizId || q.lessonId === quizLesson.id || q.id === quizLesson.id,
+      );
+      if (!quiz) {
+        throw new Error(
+          `Knowledge quiz "${quizLesson.title}" has no quiz structure. Please add questions to the quiz before submitting.`,
+        );
+      }
+    }
+
+    // Check all quizzes have valid questions with options and correct answers
+    for (const quiz of quizzes) {
+      const questions = await QuestionModel.find({ quizId: quiz.id }).select("+correctOptionIds");
+      if (questions.length === 0) {
+        throw new Error(
+          `Quiz "${quiz.title}" has 0 questions. Each quiz must contain at least 1 question before course submission.`,
+        );
+      }
+
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q.questionText || !q.questionText.trim()) {
+          throw new Error(`Question ${i + 1} in quiz "${quiz.title}" is missing question text.`);
+        }
+        if (!q.options || q.options.length < 2) {
+          throw new Error(
+            `Question "${q.questionText}" in quiz "${quiz.title}" must have at least 2 options.`,
+          );
+        }
+        if (!q.correctOptionIds || q.correctOptionIds.length === 0) {
+          throw new Error(
+            `Question "${q.questionText}" in quiz "${quiz.title}" must have a designated correct answer.`,
+          );
+        }
+      }
     }
 
     const updated = await CourseModel.findOneAndUpdate(

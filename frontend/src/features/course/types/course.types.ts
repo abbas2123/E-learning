@@ -11,6 +11,7 @@ export interface Course {
   lessonsCount: number;
   price: number;
   discountPrice?: number;
+  minCertificateScore?: number;
   status: "draft" | "published" | "archived";
   createdBy?: string;
   createdAt: string;
@@ -30,13 +31,17 @@ export interface CourseSection {
 export interface Lesson {
   id: string;
   sectionId: string;
+  courseId?: string;
   title: string;
   description?: string;
   type: "video" | "text" | "quiz" | "assignment";
   videoUrl?: string;
+  videoSourceType?: "uploaded" | "youtube" | "vimeo" | "external" | "hls";
+  quizId?: string;
+  questionCount?: number;
   duration: number;
   order?: number;
-  position: number;
+  position?: number;
   isPreview: boolean;
   resources?: LessonResource[];
 }

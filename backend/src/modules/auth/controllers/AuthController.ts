@@ -30,6 +30,7 @@ export class AuthControler {
         name: req.body.name,
         email: req.body.email,
         password: req.body.password,
+        role: req.body.role === "instructor" ? "instructor" : "student",
       };
 
       const result = await this.registeruseCase.execute(dto);
@@ -52,7 +53,6 @@ export class AuthControler {
         password: req.body.password,
       };
       const result = await this.loginuseCase.execute(dto);
-      console.log("efefe", process.env.NODE_ENV === "production");
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -80,16 +80,13 @@ export class AuthControler {
   }
 
   async verifyOtp(req: Request, res: Response, next: NextFunction) {
-    console.log("verify otp");
     try {
       const dto: VerifyOtpDto = {
         email: req.body.email,
         otp: req.body.otp,
         purpose: req.body.purpose,
       };
-      console.log("dtos", dto);
       const result = await this.verifyOtpuseCase.execute(dto);
-      console.log("result", result);
       if (result.type === "PASSWORD_RESET") {
         return res.status(200).json({
           success: true,
@@ -159,7 +156,6 @@ export class AuthControler {
 
         password: req.body.password,
       };
-      console.log("restdto", dto);
       await this.resetPasswordUseCase.execute(dto);
 
       return res.status(200).json({

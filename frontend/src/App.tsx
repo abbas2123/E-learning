@@ -39,6 +39,9 @@ const CartScreen = lazy(() => import("./features/cart/screens/CartScreen"));
 const CheckoutScreen = lazy(
   () => import("./features/cart/screens/CheckoutScreen"),
 );
+const PaymentFailureScreen = lazy(
+  () => import("./features/cart/screens/PaymentFailureScreen"),
+);
 const InstructorComingSoonScreen = lazy(
   () => import("./features/instructor/screens/InstructorComingSoonScreen"),
 );
@@ -77,6 +80,14 @@ const InstructorRevenueScreen = lazy(
 );
 const InstructorAnalyticsScreen = lazy(
   () => import("./features/instructor/screens/InstructorAnalyticsScreen"),
+);
+
+// Instructor Auth Screens
+const InstructorLoginScreen = lazy(
+  () => import("./features/instructor/auth/screens/InstructorLoginScreen"),
+);
+const InstructorRegisterScreen = lazy(
+  () => import("./features/instructor/auth/screens/InstructorRegisterScreen"),
 );
 
 // Admin Screens
@@ -137,11 +148,20 @@ function App() {
       <Routes>
         {/* Public Auth Routes */}
         <Route element={<PublicOnlyRoute />}>
+          {/* Student Portal */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Instructor Studio Portal */}
+          <Route path="/instructor/login" element={<InstructorLoginScreen />} />
+          <Route path="/instructor/register" element={<InstructorRegisterScreen />} />
+
+          {/* Shared Auth Flows */}
           <Route path="/verify-otp" element={<VerifyOtp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Admin Control Center */}
           <Route path="/admin/login" element={<AdminLoginScreen />} />
         </Route>
 
@@ -154,6 +174,8 @@ function App() {
           <Route path="/courses/:courseId" element={<CourseDetailsScreen />} />
           <Route path="/categories" element={<PublicCategoriesScreen />} />
           <Route path="/cart" element={<CartScreen />} />
+          <Route path="/payment/failure" element={<PaymentFailureScreen />} />
+          <Route path="/payment-failure" element={<PaymentFailureScreen />} />
           <Route path="/instructor/apply" element={<InstructorComingSoonScreen />} />
           <Route path="/certificates/verify" element={<CertificateVerificationScreen />} />
           <Route path="/certificates/verify/:certificateId" element={<CertificateVerificationScreen />} />

@@ -6,7 +6,7 @@ const InstructorProtectedRoute = () => {
   const location = useLocation();
 
   if (!isLoggedIn || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/instructor/login" state={{ from: location }} replace />;
   }
 
   if (user.role !== "instructor" && user.role !== "admin") {

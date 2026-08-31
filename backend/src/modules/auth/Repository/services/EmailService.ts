@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import type { IEmailService } from "../../interface/IEmailService";
+import { Logger } from "../../../../core/logger/Logger.js";
 
 export class EmailService implements IEmailService {
   private transporter: Transporter | null = null;
@@ -21,11 +22,9 @@ export class EmailService implements IEmailService {
         secure: port === 465,
         auth: { user, pass },
       });
-      console.log(`[NODEMAILER] SMTP transporter initialized with host: ${host}`);
+      Logger.info(`[EMAIL SERVICE] SMTP transporter initialized with host: ${host}`);
     } else {
-      console.log(
-        `[NODEMAILER] SMTP credentials not set in .env. Emails will be logged to console and sent via test account if available.`,
-      );
+      Logger.info(`[EMAIL SERVICE] SMTP credentials not set. Running in local/test mail mode.`);
     }
   }
 
@@ -82,10 +81,10 @@ export class EmailService implements IEmailService {
       </html>
     `;
 
-    // Console log for local inspection
-    console.log(
-      `\n=======================================================\n📧 [NODEMAILER OTP EMAIL] To: ${email}\nOTP CODE: ${otp}\n=======================================================\n`,
-    );
+    Logger.info(`[EMAIL SERVICE] Dispatching OTP verification email`, {
+      recipient: email.replace(/(?<=.{2}).(?=[^@]*?@)/g, "*"),
+      hasTransporter: !!this.transporter,
+    });
 
     if (this.transporter) {
       try {
@@ -95,9 +94,9 @@ export class EmailService implements IEmailService {
           subject,
           html,
         });
-        console.log(`[NODEMAILER] OTP email successfully sent to ${email}`);
+        Logger.info(`[EMAIL SERVICE] OTP email successfully sent to recipient`);
       } catch (err: any) {
-        console.error(`[NODEMAILER ERROR] Failed to send OTP email: ${err.message}`);
+        Logger.error(`[EMAIL SERVICE] Failed to send OTP email`, { error: err?.message });
       }
     }
   }
@@ -146,9 +145,10 @@ export class EmailService implements IEmailService {
       </html>
     `;
 
-    console.log(
-      `\n=======================================================\n📧 [NODEMAILER WELCOME EMAIL] To: ${email}\nWelcome ${name}!\n=======================================================\n`,
-    );
+    Logger.info(`[EMAIL SERVICE] Dispatching welcome email`, {
+      recipient: email.replace(/(?<=.{2}).(?=[^@]*?@)/g, "*"),
+      hasTransporter: !!this.transporter,
+    });
 
     if (this.transporter) {
       try {
@@ -158,9 +158,9 @@ export class EmailService implements IEmailService {
           subject,
           html,
         });
-        console.log(`[NODEMAILER] Welcome email successfully sent to ${email}`);
+        Logger.info(`[EMAIL SERVICE] Welcome email successfully sent to recipient`);
       } catch (err: any) {
-        console.error(`[NODEMAILER ERROR] Failed to send welcome email: ${err.message}`);
+        Logger.error(`[EMAIL SERVICE] Failed to send welcome email`, { error: err?.message });
       }
     }
   }

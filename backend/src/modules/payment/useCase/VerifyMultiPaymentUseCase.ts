@@ -21,6 +21,13 @@ export class VerifyMultiPaymentUseCase {
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET || "totc_razorpay_secret_key";
 
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (isProduction && (!signature || signature === "dummy_sig")) {
+      await this.paymentRepository.markAsFailed(orderId, "Missing or invalid Razorpay Signature");
+      throw new Error("Razorpay cryptographic payment signature is strictly required in production.");
+    }
+
     // HMAC Signature Verification
     if (signature && signature !== "dummy_sig") {
       const generatedSignature = crypto

@@ -19,7 +19,6 @@ export class ForgotPassUseCase {
     }
     const otp = this.otpService.generateOtp();
     const hashedOtp = await this.passowrdServie.hash(otp);
-    console.log("hashedOtp", hashedOtp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     await this.otprepo.saveOtp(email, hashedOtp, expiresAt);
     await this.otpService.sendOtp(email, otp);

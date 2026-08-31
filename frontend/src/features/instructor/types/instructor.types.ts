@@ -17,6 +17,7 @@ export interface InstructorCourseSummary {
   createdBy: string;
   requirements: string[];
   learningOutcomes: string[];
+  minCertificateScore?: number;
   studentCount: number;
   rating: number;
   reviewCount: number;
@@ -107,6 +108,7 @@ export interface CreateCoursePayload {
   duration?: number;
   requirements?: string[];
   learningOutcomes?: string[];
+  minCertificateScore?: number;
 }
 
 export interface UpdateCoursePayload extends Partial<CreateCoursePayload> {}

@@ -1,24 +1,24 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck, Info, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { adminService, type SystemNotification } from "../../admin/services/adminService";
+import { notificationService, type UserNotification } from "../../../services/notificationService";
 import { toast } from "sonner";
 import { EmptyState } from "../../../components/ui/EmptyState";
 
 export default function NotificationsScreen() {
-  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService
+    notificationService
       .getNotifications()
-      .then(setNotifications)
+      .then((res) => setNotifications(res.notifications || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const handleMarkAllRead = async () => {
     try {
-      await adminService.markNotificationsRead();
+      await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       toast.success("All notifications marked as read.");
     } catch {

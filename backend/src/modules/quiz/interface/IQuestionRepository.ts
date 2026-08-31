@@ -58,4 +58,6 @@ export interface IQuestionRepository {
   deleteByQuizId(quizId: string): Promise<number>;
   reorderQuestions(quizId: string, orderedQuestionIds: string[]): Promise<QuestionDto[]>;
   getMaxOrder(quizId: string): Promise<number>;
+  /** Returns a map of quizId → question count for the given quiz IDs */
+  getQuestionCountsByQuizIds(quizIds: string[]): Promise<Map<string, number>>;
 }

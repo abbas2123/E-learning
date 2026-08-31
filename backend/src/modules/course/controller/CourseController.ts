@@ -12,7 +12,11 @@ export class CourseController {
 
   async getCourses(req: Request, res: Response, next: NextFunction) {
     try {
-      const courses = await this.getCoursesUseCase.execute();
+      const category = req.query.category ? String(req.query.category) : undefined;
+      const search = req.query.search ? String(req.query.search) : undefined;
+      const status = req.query.status ? String(req.query.status) : "published";
+
+      const courses = await this.getCoursesUseCase.execute({ category, search, status });
       const formatted = courses.map((c) => c.toJSON());
       return res.status(200).json({ success: true, data: formatted });
     } catch (error) {

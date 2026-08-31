@@ -15,6 +15,7 @@ import type { DeleteCategoryUseCase } from "../useCase/DeleteCategoryUseCase";
 import type { GetEnrollmentsUseCase } from "../useCase/GetEnrollmentsUseCase";
 import type { GetNotificationsUseCase } from "../useCase/GetNotificationsUseCase";
 import type { MarkNotificationsReadUseCase } from "../useCase/MarkNotificationsReadUseCase";
+import type { UpdateUserRoleUseCase } from "../useCase/UpdateUserRoleUseCase";
 
 export class AdminController {
   constructor(
@@ -22,6 +23,7 @@ export class AdminController {
     private readonly getUsersUseCase: GetUsersUseCase,
     private readonly toggleUserBlockUseCase: ToggleUserBlockUseCase,
     private readonly createUserUseCase: CreateUserUseCase,
+    private readonly updateUserRoleUseCase: UpdateUserRoleUseCase,
     private readonly getCoursesUseCase: GetCoursesUseCase,
     private readonly getPendingCoursesUseCase: GetPendingCoursesUseCase,
     private readonly createCourseUseCase: CreateCourseUseCase,
@@ -69,6 +71,17 @@ export class AdminController {
       const { name, email, role } = req.body;
       const data = await this.createUserUseCase.execute({ name, email, role });
       return res.status(201).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateUserRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = String(req.params.id);
+      const { role } = req.body;
+      const data = await this.updateUserRoleUseCase.execute(id, role);
+      return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
     }

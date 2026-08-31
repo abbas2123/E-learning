@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/seed.ts",
+    "test": "tsx --test src/tests/businessLogic.test.ts src/tests/useCasesCleanArchitecture.test.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },

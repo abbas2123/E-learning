@@ -2,74 +2,66 @@ import type {
   ICertificateRepository,
   CertificateDto,
 } from "../interface/ICertificateRepository";
-import { CourseModel } from "../../course/repository/database/Course";
-import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
-import { LessonModel } from "../../curriculum/database/Lesson";
-import { LessonProgressModel } from "../../progress/database/LessonProgress";
-import { UserModel } from "../../auth/Repository/database/User";
+import type { ICourseRepository } from "../../course/interface/ICourseRepository";
+import type { IEnrollmentRepository } from "../../admin/interface/IEnrollmentRepository";
+import type { IUserRepository } from "../../auth/interface/IUserRepository";
+import type { GetCertificateStatusUseCase } from "./GetCertificateStatusUseCase";
 
 export interface GenerateCertificateInput {
   userId: string;
   courseId: string;
+  userRole?: string;
 }
 
 export class GenerateCertificateUseCase {
-  constructor(private readonly certificateRepository: ICertificateRepository) {}
+  constructor(
+    private readonly certificateRepository: ICertificateRepository,
+    private readonly courseRepository: ICourseRepository,
+    private readonly enrollmentRepository: IEnrollmentRepository,
+    private readonly userRepository: IUserRepository,
+    private readonly statusUseCase: GetCertificateStatusUseCase,
+  ) {}
 
   async execute(input: GenerateCertificateInput): Promise<CertificateDto> {
-    const { userId, courseId } = input;
+    const { userId, courseId, userRole } = input;
 
     if (!userId) throw new Error("Authentication required.");
     if (!courseId) throw new Error("Course ID is required.");
 
-    // 1. Check if certificate already exists (Idempotent return!)
-    const existingCert = await this.certificateRepository.findByStudentAndCourse(
-      userId,
-      courseId,
-    );
+    // 1. Idempotent: return existing certificate without re-generating
+    const existingCert = await this.certificateRepository.findByStudentAndCourse(userId, courseId);
     if (existingCert) {
       return existingCert;
     }
 
-    // 2. Validate course existence
-    const course = await CourseModel.findOne({ id: courseId });
+    // 2. Validate course existence via repository
+    const course = await this.courseRepository.findSummaryById(courseId);
     if (!course) throw new Error("Course not found.");
 
-    // 3. Validate enrollment
-    const enrollment = await EnrollmentModel.findOne({
-      studentId: userId,
-      courseId,
-      status: "completed",
-    });
-    if (!enrollment) {
-      throw new Error("Access denied. Completed enrollment required to generate certificate.");
+    // 3. Server-side eligibility check — cannot be bypassed by client
+    const status = await this.statusUseCase.execute({ userId, courseId, userRole });
+
+    if (!status.eligible) {
+      const reasonMsg =
+        status.reasons.length > 0
+          ? status.reasons.join(" ")
+          : "Course completion requirements have not been met.";
+      throw new Error(`Certificate Ineligible: ${reasonMsg}`);
     }
 
-    // 4. Validate course lessons
-    const totalLessons = await LessonModel.countDocuments({ courseId });
-    if (totalLessons === 0) {
-      throw new Error("Cannot generate certificate for a course with zero published lessons.");
-    }
+    // 4. Resolve student name from user repository, with enrollment as fallback
+    const userEntity = await this.userRepository.findById(userId);
+    let studentName = userEntity?.getName() ?? "";
 
-    // 5. Validate course completion = 100%
-    const completedCount = await LessonProgressModel.countDocuments({
-      studentId: userId,
-      courseId,
-      completed: true,
-    });
-
-    if (completedCount < totalLessons) {
-      const pct = Math.round((completedCount / totalLessons) * 100);
-      throw new Error(
-        `Course incomplete (${completedCount}/${totalLessons} lessons completed, ${pct}%). 100% completion required for certificate issuance.`,
+    if (!studentName) {
+      const enrollment = await this.enrollmentRepository.findCompletedByStudentAndCourse(
+        userId,
+        courseId,
       );
+      studentName = enrollment?.studentName ?? "Student";
     }
 
-    // 6. Get student's display name
-    const userDoc = await UserModel.findOne({ id: userId });
-    const studentName = userDoc?.name || enrollment.studentName || "Student";
-
-    // 7. Create certificate
+    // 5. Issue certificate (database unique index prevents duplicates)
     return this.certificateRepository.createCertificate({
       studentId: userId,
       studentName,

@@ -18,7 +18,14 @@ router.get(
   (req, res, next) => controller.downloadPdf(req, res, next),
 );
 
-// 3. AUTH: Generate certificate (idempotent)
+// 3. AUTH: Get Certificate Status & Eligibility for Course
+router.get(
+  "/certificates/courses/:courseId/status",
+  authMiddleware,
+  (req, res, next) => controller.getCertificateStatus(req, res, next),
+);
+
+// 4. AUTH: Generate certificate (idempotent & strictly validated)
 router.post(
   "/certificates/generate",
   authMiddleware,

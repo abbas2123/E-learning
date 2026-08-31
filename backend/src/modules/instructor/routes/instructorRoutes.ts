@@ -2,13 +2,26 @@ import { Router } from "express";
 import { createInstructorContainer } from "../composition/instructorContainer";
 import { authMiddleware } from "../../../middlewares/authMiddleware";
 import { instructorMiddleware } from "../../../middlewares/instructorMiddleware";
+import { uploadVideo } from "../../../middlewares/uploadMiddleware";
+import { mediaUploadLimiter } from "../../../middlewares/rateLimiter";
 
 const router = Router();
 const { controller } = createInstructorContainer();
 
-// All instructor routes require authentication AND instructor/admin privileges
+// Apply route for students (requires auth, but not instructor role yet)
+router.post("/apply", authMiddleware, (req, res, next) => controller.applyInstructor(req, res, next));
+
+// Studio routes require authentication AND instructor/admin privileges
 router.use(authMiddleware);
 router.use(instructorMiddleware);
+
+// Video Upload Route (Multer memoryStorage + Cloudinary video stream, 150MB limit)
+router.post(
+  "/upload-video",
+  mediaUploadLimiter,
+  uploadVideo.single("video"),
+  (req, res, next) => controller.uploadVideo(req, res, next),
+);
 
 router.get("/dashboard", (req, res, next) => controller.getDashboardStats(req, res, next));
 router.get("/courses", (req, res, next) => controller.getCourses(req, res, next));

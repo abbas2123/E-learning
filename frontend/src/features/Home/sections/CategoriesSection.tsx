@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminService, type CategoryItem } from "../../admin/services/adminService";
+import { categoryService, type CategoryItem } from "../../../services/categoryService";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { LayoutGrid, ArrowRight } from "lucide-react";
 
@@ -10,7 +10,7 @@ export default function CategoriesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService
+    categoryService
       .getCategories()
       .then(setCategories)
       .catch(() => {})

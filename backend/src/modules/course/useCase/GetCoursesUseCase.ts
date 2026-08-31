@@ -1,10 +1,15 @@
-import type { ICourseRepository } from "../interface/ICourseRepository";
+import type { ICourseRepository, CourseFilterParams } from "../interface/ICourseRepository";
 import { Course } from "../entity/Course";
 
 export class GetCoursesUseCase {
   constructor(private readonly courseRepository: ICourseRepository) {}
 
-  async execute(): Promise<Course[]> {
-    return this.courseRepository.findAll();
+  async execute(filter?: CourseFilterParams): Promise<Course[]> {
+    const effectiveFilter: CourseFilterParams = {
+      status: filter?.status || "published",
+      category: filter?.category,
+      search: filter?.search,
+    };
+    return this.courseRepository.findAll(effectiveFilter);
   }
 }

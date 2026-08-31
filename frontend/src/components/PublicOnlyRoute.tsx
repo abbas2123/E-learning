@@ -8,6 +8,9 @@ export default function PublicOnlyRoute() {
     if (user?.role === "admin") {
       return <Navigate to="/admin/dashboard" replace />;
     }
+    if (user?.role === "instructor") {
+      return <Navigate to="/instructor/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

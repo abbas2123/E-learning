@@ -7,6 +7,7 @@ export interface ActiveCourse {
   instructor: string;
   image: string;
   nextLesson: string;
+  lastLessonId?: string;
 }
 
 export interface CatalogCourse {
@@ -17,17 +18,28 @@ export interface CatalogCourse {
   accent?: string;
 }
 
+export interface ResumeCourseInfo {
+  courseId: string;
+  courseTitle: string;
+  lessonId?: string;
+  lessonTitle?: string;
+  progressPercentage: number;
+  thumbnail?: string;
+}
+
 export interface DashboardSummary {
   enrolledCount: number;
   activeCount: number;
-  userGpa: string;
+  completedCount: number;
+  certificatesCount: number;
+  resumeCourse?: ResumeCourseInfo | null;
   nextClass?: {
     title: string;
     instructor: string;
     room: string;
     startTime: string;
     avatar?: string;
-  };
+  } | null;
 }
 
 export interface IDashboardRepository {

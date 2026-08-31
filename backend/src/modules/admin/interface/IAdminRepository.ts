@@ -16,6 +16,7 @@ export interface IAdminRepository {
   getUsers(): Promise<AdminUserDto[]>;
   toggleUserBlock(userId: string): Promise<string>;
   createUser(data: CreateUserDto): Promise<AdminUserDto>;
+  updateUserRole(userId: string, role: string): Promise<AdminUserDto>;
 
   // Courses
   getCourses(): Promise<AdminCourseDto[]>;

@@ -33,12 +33,6 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
 
-  useEffect(() => {
-    if (discussionId) {
-      loadThread();
-    }
-  }, [discussionId]);
-
   const loadThread = async () => {
     if (!discussionId) return;
     try {
@@ -53,6 +47,12 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (discussionId) {
+      loadThread();
+    }
+  }, [discussionId]);
 
   const handlePostReply = async (e: React.FormEvent) => {
     e.preventDefault();

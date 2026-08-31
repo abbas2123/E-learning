@@ -2,17 +2,28 @@ import apiClient from "./apiClient";
 import type { ActiveStudentCourse } from "../features/Home/components/UserDashboardWidgets";
 import type { CourseItem } from "../features/Home/sections/CoursesSection";
 
+export type ResumeCourseData = {
+  courseId: string;
+  courseTitle: string;
+  lessonId?: string;
+  lessonTitle?: string;
+  progressPercentage: number;
+  thumbnail?: string;
+};
+
 export type DashboardSummaryResponse = {
   enrolledCount: number;
   activeCount: number;
-  userGpa: string;
+  completedCount: number;
+  certificatesCount: number;
+  resumeCourse?: ResumeCourseData | null;
   nextClass?: {
     title: string;
     instructor: string;
     room: string;
     startTime: string;
     avatar?: string;
-  };
+  } | null;
 };
 
 export const dashboardService = {

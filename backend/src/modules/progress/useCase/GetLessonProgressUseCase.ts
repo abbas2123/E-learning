@@ -29,9 +29,25 @@ export class GetLessonProgressUseCase {
     if (!course) throw new Error("Course not found.");
 
     const lesson = await LessonModel.findOne({ id: lessonId });
-    if (!lesson) throw new Error("Lesson not found.");
-
-    if (lesson.courseId !== courseId) {
+    if (!lesson) {
+      // Check if it corresponds to a course quiz
+      const { QuizModel } = await import("../../quiz/database/Quiz.js");
+      const quiz = await QuizModel.findOne({ id: lessonId, courseId });
+      if (!quiz) {
+        // Return default progress rather than crashing
+        return {
+          id: "",
+          studentId: userId,
+          courseId,
+          lessonId,
+          completed: false,
+          watchedSeconds: 0,
+          completedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+    } else if (lesson.courseId !== courseId) {
       throw new Error(`Lesson ${lessonId} does not belong to course ${courseId}.`);
     }
 

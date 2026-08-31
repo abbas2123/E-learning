@@ -18,11 +18,25 @@ import {
   type DashboardSummaryResponse,
 } from "../../../services/dashboardService";
 
+import { Navigate } from "react-router-dom";
+
 export default function HomePage() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
+
+  // Instructors and Admins should go straight to their dedicated dashboards
+  if (isLoggedIn) {
+    if (user?.role === "instructor") {
+      return <Navigate to="/instructor/dashboard" replace />;
+    }
+    if (user?.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+  }
+
   const [summary, setSummary] = useState<DashboardSummaryResponse | undefined>();
   const [activeCourses, setActiveCourses] = useState<ActiveStudentCourse[] | undefined>();
   const [catalogCourses, setCatalogCourses] = useState<CourseItem[] | undefined>();
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   useEffect(() => {
     dashboardService
@@ -31,28 +45,36 @@ export default function HomePage() {
       .catch((err) => console.error("Error fetching catalog courses:", err));
 
     if (isLoggedIn) {
-      dashboardService
-        .getSummary()
-        .then((data) => setSummary(data))
-        .catch((err) => console.error("Error fetching summary:", err));
-
-      dashboardService
-        .getActiveCourses()
-        .then((data) => setActiveCourses(data))
-        .catch((err) => console.error("Error fetching active courses:", err));
+      setDashboardLoading(true);
+      Promise.all([
+        dashboardService.getSummary().then(setSummary),
+        dashboardService.getActiveCourses().then(setActiveCourses),
+      ])
+        .catch((err) => console.error("Error fetching student dashboard:", err))
+        .finally(() => setDashboardLoading(false));
     } else {
       setSummary(undefined);
       setActiveCourses(undefined);
+      setDashboardLoading(false);
     }
   }, [isLoggedIn]);
 
   return (
     <>
       {/* Dynamic Hero */}
-      {isLoggedIn ? <LoggedInHero summary={summary} /> : <HeroSection />}
+      {isLoggedIn ? (
+        <LoggedInHero summary={summary} loading={dashboardLoading} />
+      ) : (
+        <HeroSection />
+      )}
 
       {/* Logged-In Student Dashboard */}
-      {isLoggedIn && <UserDashboardWidgets activeCourses={activeCourses} />}
+      {isLoggedIn && (
+        <UserDashboardWidgets
+          activeCourses={activeCourses}
+          loading={dashboardLoading}
+        />
+      )}
 
       {/* Popular Categories from DB */}
       <CategoriesSection />

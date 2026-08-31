@@ -10,6 +10,7 @@ export type RegisterPayload = {
   name?: string;
   email: string;
   password: string;
+  role?: "student" | "instructor";
 };
 
 export type OtpPurpose = "EMAIL_VERIFICATION" | "PASSWORD_RESET";
@@ -80,7 +81,6 @@ export const verifyOtpApi = async (
     "/api/auth/verify-otp",
     payload,
   );
-  console.log("response", response);
   return response.data;
 };
 

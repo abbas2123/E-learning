@@ -45,6 +45,10 @@ export interface IQuizAttemptRepository {
   findById(attemptId: string): Promise<QuizAttemptDto | null>;
   findInProgress(studentId: string, quizId: string): Promise<QuizAttemptDto | null>;
   findByStudentAndQuiz(studentId: string, quizId: string): Promise<QuizAttemptDto[]>;
+  /** Returns only submitted (not in_progress/expired) attempts for a student+quiz */
+  findSubmittedByStudentAndQuiz(studentId: string, quizId: string): Promise<QuizAttemptDto[]>;
+  /** Returns the highest percentage score the student achieved on a quiz (0 if none) */
+  getBestPercentageByStudentAndQuiz(studentId: string, quizId: string): Promise<number>;
   findByQuizId(quizId: string): Promise<QuizAttemptDto[]>;
   countByStudentAndQuiz(studentId: string, quizId: string): Promise<number>;
   submit(attemptId: string, params: SubmitAttemptParams): Promise<QuizAttemptDto | null>;

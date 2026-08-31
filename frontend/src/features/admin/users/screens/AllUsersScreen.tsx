@@ -133,17 +133,26 @@ export default function AllUsersScreen() {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold capitalize ${
-                        item.role === "admin"
-                          ? "bg-purple-50 text-purple-700"
-                          : item.role === "instructor"
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
+                    <select
+                      value={item.role}
+                      onChange={async (e) => {
+                        const newRole = e.target.value as "student" | "instructor" | "admin";
+                        try {
+                          await adminService.updateUserRole(item.id, newRole);
+                          setUsers((prev) =>
+                            prev.map((u) => (u.id === item.id ? { ...u, role: newRole } : u))
+                          );
+                          toast.success(`Updated ${item.name}'s role to ${newRole}`);
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.message || "Failed to update role");
+                        }
+                      }}
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer focus:outline-none"
                     >
-                      {item.role}
-                    </span>
+                      <option value="student">STUDENT</option>
+                      <option value="instructor">INSTRUCTOR</option>
+                      <option value="admin">ADMIN</option>
+                    </select>
                   </td>
                   <td className="py-4 px-6 text-xs text-slate-500">{item.joinedAt}</td>
                   <td className="py-4 px-6">
@@ -157,7 +166,7 @@ export default function AllUsersScreen() {
                       {item.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-4 px-6 text-right space-x-2">
                     <button
                       onClick={() => handleToggleBlock(item)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${

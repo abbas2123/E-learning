@@ -15,18 +15,16 @@ const AdminLoginScreen = () => {
   const { isLoggedIn, user, adminLogin } = useAuth();
   const navigate = useNavigate();
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   // If already logged in as admin, redirect to admin dashboard
   if (isLoggedIn && user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
-
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

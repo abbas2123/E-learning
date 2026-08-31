@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { PlayCircle, BookOpen, Clock, ArrowRight } from "lucide-react";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 export type ActiveStudentCourse = {
   id: string;
@@ -9,52 +12,82 @@ export type ActiveStudentCourse = {
   instructor: string;
   image: string;
   nextLesson: string;
+  lastLessonId?: string;
 };
 
 type UserDashboardWidgetsProps = {
   activeCourses?: ActiveStudentCourse[];
+  loading?: boolean;
 };
 
-export default function UserDashboardWidgets({ activeCourses }: UserDashboardWidgetsProps) {
+export default function UserDashboardWidgets({ activeCourses, loading }: UserDashboardWidgetsProps) {
   const { user } = useAuth();
-  const userName = user?.name ? `${user.name}'s` : "Your";
+  const navigate = useNavigate();
+  const userName = user?.name ? user.name.split(" ")[0] : "Your";
 
-  // Use passed courses or empty fallback
-  const coursesList = activeCourses ?? []
-
-  const totalCourses = user?.enrolledCount ?? coursesList.length;
+  const coursesList = activeCourses ?? [];
 
   return (
     <section id="dashboard" className="py-16 bg-slate-50 border-y border-slate-200/60">
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 space-y-12">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 space-y-10">
         {/* Section Title */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-600">
-              Personalized Dashboard
+            <span className="text-xs font-bold uppercase tracking-wider text-teal-600">
+              Personalized Learning
             </span>
             <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
-              {userName} Active Learning Progress
+              {userName}'s Active Courses
             </h2>
           </div>
-          <a
-            href="#my-courses"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-600 hover:text-cyan-700 transition"
-          >
-            View All Enrolled Courses ({totalCourses}) →
-          </a>
+          {coursesList.length > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate("/my-learning")}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 hover:text-teal-700 transition"
+            >
+              View All Enrolled Courses ({coursesList.length})
+              <ArrowRight size={14} />
+            </button>
+          )}
         </div>
 
-        {/* Active Courses Grid / Empty State */}
-        {!coursesList || coursesList.length === 0 ? (
-          <div className="rounded-[28px] bg-white p-12 text-center border border-slate-200 shadow-sm space-y-3">
-            <div className="text-4xl">🎓</div>
-            <h3 className="text-xl font-bold text-slate-900">No Enrolled Courses Found</h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">
-              You haven't enrolled in any active courses yet. Browse our course catalog to start learning!
-            </p>
+        {/* Loading State */}
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-[24px] bg-white p-5 border border-slate-200 shadow-sm space-y-4">
+                <Skeleton className="h-44 w-full rounded-2xl" />
+                <Skeleton className="h-6 w-3/4 rounded-lg" />
+                <Skeleton className="h-4 w-1/2 rounded-lg" />
+                <Skeleton className="h-2 w-full rounded-full" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : coursesList.length === 0 ? (
+          /* Empty State */
+          <div className="rounded-[28px] bg-white p-12 text-center border border-slate-200 shadow-sm space-y-4 max-w-lg mx-auto">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-600">
+              <BookOpen size={28} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">No Enrolled Courses Yet</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                You haven't enrolled in any courses yet. Browse our course catalog to find your next skill!
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/course")}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-teal-600 text-white px-5 py-2.5 text-xs font-bold shadow-md transition"
+            >
+              Explore Course Catalog
+              <ArrowRight size={14} />
+            </button>
           </div>
         ) : (
+          /* Real Enrolled Courses Grid */
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {coursesList.map((course) => (
               <div
@@ -63,11 +96,15 @@ export default function UserDashboardWidgets({ activeCourses }: UserDashboardWid
               >
                 <div>
                   {/* Course Image Header */}
-                  <div className="relative rounded-2xl overflow-hidden aspect-[16/9] mb-4">
+                  <div className="relative rounded-2xl overflow-hidden aspect-[16/9] mb-4 bg-slate-100">
                     <img
                       src={course.image}
                       alt={course.title}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80";
+                      }}
                     />
                     <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
                       {course.category}
@@ -77,7 +114,7 @@ export default function UserDashboardWidgets({ activeCourses }: UserDashboardWid
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-cyan-600 transition-colors line-clamp-1">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-600 transition-colors line-clamp-2 min-h-[48px]">
                     {course.title}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -92,20 +129,29 @@ export default function UserDashboardWidgets({ activeCourses }: UserDashboardWid
                     </div>
                     <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 transition-all duration-500"
+                        className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-500"
                         style={{ width: `${course.progress}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
-                    <span className="font-bold text-slate-800">Next: </span>
-                    {course.nextLesson}
+                  {/* Next Lesson info */}
+                  <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 flex items-center gap-2">
+                    <Clock size={14} className="text-slate-400 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-800">Next: </span>
+                      <span className="line-clamp-1">{course.nextLesson}</span>
+                    </div>
                   </div>
                 </div>
 
-                <button className="mt-5 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-cyan-600 text-white text-xs font-semibold shadow-md transition-all">
-                  Continue Lesson
+                <button
+                  type="button"
+                  onClick={() => navigate(`/learn/${course.id}`)}
+                  className="mt-5 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-teal-600 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  <PlayCircle size={15} />
+                  {course.progress === 100 ? "Review Course" : "Continue Lesson"}
                 </button>
               </div>
             ))}

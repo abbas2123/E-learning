@@ -10,6 +10,7 @@ import { SubmissionChecklist } from "../components/SubmissionChecklist";
 import { CoursePreviewModal } from "../components/CoursePreviewModal";
 import { CourseStatusBadge } from "../components/CourseStatusBadge";
 import quizService from "../../quiz/service/quizService";
+import { categoryService } from "../../../services/categoryService";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -38,6 +39,7 @@ export default function InstructorCourseEditorScreen() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<{ id: string; name: string }[]>([]);
 
   // Form Fields
   const [title, setTitle] = useState("");
@@ -49,6 +51,17 @@ export default function InstructorCourseEditorScreen() {
   const [duration, setDuration] = useState(120);
   const [requirementsText, setRequirementsText] = useState("");
   const [outcomesText, setOutcomesText] = useState("");
+  const [minCertificateScore, setMinCertificateScore] = useState(70);
+
+  useEffect(() => {
+    categoryService.getCategories()
+      .then((cats) => {
+        if (cats && cats.length > 0) {
+          setAvailableCategories(cats);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const loadCourseData = useCallback(async () => {
     if (!courseId) return;
@@ -72,6 +85,7 @@ export default function InstructorCourseEditorScreen() {
       setPrice(courseData.price);
       setThumbnail(courseData.thumbnail || "");
       setDuration(courseData.duration || 120);
+      setMinCertificateScore(courseData.minCertificateScore ?? 70);
       setRequirementsText(courseData.requirements?.join("\n") || "");
       setOutcomesText(courseData.learningOutcomes?.join("\n") || "");
     } catch (err: any) {
@@ -101,6 +115,7 @@ export default function InstructorCourseEditorScreen() {
 
     setSaving(true);
     try {
+      const parsedMinScore = Math.min(100, Math.max(0, Number(minCertificateScore) || 70));
       const payload = {
         title: title.trim(),
         description: description.trim(),
@@ -109,6 +124,7 @@ export default function InstructorCourseEditorScreen() {
         price: Number(price),
         thumbnail: thumbnail.trim() || null,
         duration: Number(duration),
+        minCertificateScore: parsedMinScore,
         requirements: requirementsText
           .split("\n")
           .map((s) => s.trim())
@@ -267,11 +283,21 @@ export default function InstructorCourseEditorScreen() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
                 >
-                  <option value="Development">Development</option>
-                  <option value="Business">Business</option>
-                  <option value="Design">Design</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Data Science">Data Science</option>
+                  {availableCategories.length > 0 ? (
+                    availableCategories.map((c) => (
+                      <option key={c.id || c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Development">Development</option>
+                      <option value="Business">Business</option>
+                      <option value="Design">Design</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Data Science">Data Science</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -301,7 +327,7 @@ export default function InstructorCourseEditorScreen() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-slate-400 font-medium mb-1">Thumbnail Image URL</label>
                 <input
@@ -314,13 +340,28 @@ export default function InstructorCourseEditorScreen() {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Total Estimated Duration (Minutes)</label>
+                <label className="block text-slate-400 font-medium mb-1">Estimated Duration (Mins)</label>
                 <input
                   type="number"
                   min={0}
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Cert. Passing Score (%) *
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  required
+                  value={minCertificateScore}
+                  onChange={(e) => setMinCertificateScore(Math.min(100, Math.max(0, Number(e.target.value))))}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-amber-400 focus:border-amber-500 focus:outline-none font-bold"
                 />
               </div>
             </div>

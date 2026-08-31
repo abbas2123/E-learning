@@ -16,6 +16,7 @@ export interface InstructorCourseSummaryDto {
   createdBy: string;
   requirements: string[];
   learningOutcomes: string[];
+  minCertificateScore: number;
   studentCount: number;
   rating: number;
   reviewCount: number;
@@ -106,6 +107,7 @@ export interface CreateInstructorCourseParams {
   duration?: number;
   requirements?: string[];
   learningOutcomes?: string[];
+  minCertificateScore?: number;
 }
 
 export interface UpdateInstructorCourseParams {
@@ -118,6 +120,7 @@ export interface UpdateInstructorCourseParams {
   duration?: number;
   requirements?: string[];
   learningOutcomes?: string[];
+  minCertificateScore?: number;
 }
 
 export interface IInstructorRepository {
