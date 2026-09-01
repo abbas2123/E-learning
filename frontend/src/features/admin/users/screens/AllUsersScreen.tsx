@@ -11,7 +11,9 @@ export default function AllUsersScreen() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<"student" | "instructor" | "admin">("student");
+  const [newRole, setNewRole] = useState<"student" | "instructor" | "admin">(
+    "student",
+  );
 
   useEffect(() => {
     adminService.getUsers().then(setUsers);
@@ -29,7 +31,7 @@ export default function AllUsersScreen() {
   const handleToggleBlock = async (user: AdminUser) => {
     const newStatus = await adminService.toggleUserBlock(user.id);
     setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
+      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)),
     );
     toast.info(`User ${user.name} is now ${newStatus}`);
   };
@@ -57,8 +59,12 @@ export default function AllUsersScreen() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Platform Users Directory</h2>
-          <p className="text-xs text-slate-500 mt-1">Manage accounts, roles, access permissions, and account status</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Platform Users Directory
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage accounts, roles, access permissions, and account status
+          </p>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
@@ -120,15 +126,22 @@ export default function AllUsersScreen() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredUsers.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr
+                  key={item.id}
+                  className="hover:bg-slate-50/80 transition-colors"
+                >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
                         {item.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-xs sm:text-sm">{item.name}</p>
-                        <p className="text-[11px] text-slate-400">{item.email}</p>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {item.email}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -136,15 +149,25 @@ export default function AllUsersScreen() {
                     <select
                       value={item.role}
                       onChange={async (e) => {
-                        const newRole = e.target.value as "student" | "instructor" | "admin";
+                        const newRole = e.target.value as
+                          | "student"
+                          | "instructor"
+                          | "admin";
                         try {
                           await adminService.updateUserRole(item.id, newRole);
                           setUsers((prev) =>
-                            prev.map((u) => (u.id === item.id ? { ...u, role: newRole } : u))
+                            prev.map((u) =>
+                              u.id === item.id ? { ...u, role: newRole } : u,
+                            ),
                           );
-                          toast.success(`Updated ${item.name}'s role to ${newRole}`);
+                          toast.success(
+                            `Updated ${item.name}'s role to ${newRole}`,
+                          );
                         } catch (err: any) {
-                          toast.error(err.response?.data?.message || "Failed to update role");
+                          toast.error(
+                            err.response?.data?.message ||
+                              "Failed to update role",
+                          );
                         }
                       }}
                       className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer focus:outline-none"
@@ -154,7 +177,9 @@ export default function AllUsersScreen() {
                       <option value="admin">ADMIN</option>
                     </select>
                   </td>
-                  <td className="py-4 px-6 text-xs text-slate-500">{item.joinedAt}</td>
+                  <td className="py-4 px-6 text-xs text-slate-500">
+                    {item.joinedAt}
+                  </td>
                   <td className="py-4 px-6">
                     <span
                       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
@@ -175,7 +200,9 @@ export default function AllUsersScreen() {
                           : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                       }`}
                     >
-                      {item.status === "active" ? "Block Access" : "Unblock User"}
+                      {item.status === "active"
+                        ? "Block Access"
+                        : "Unblock User"}
                     </button>
                   </td>
                 </tr>
@@ -190,14 +217,22 @@ export default function AllUsersScreen() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <form
             onSubmit={handleAddUser}
-            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 space-y-4 shadow-2xl border border-slate-200 sm:p-6"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-lg">Add New User</h3>
-              <button type="button" onClick={() => setIsAddModalOpen(false)} className="text-slate-400">✕</button>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400"
+              >
+                ✕
+              </button>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Full Name
+              </label>
               <input
                 type="text"
                 required
@@ -208,7 +243,9 @@ export default function AllUsersScreen() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Email Address
+              </label>
               <input
                 type="email"
                 required
@@ -219,7 +256,9 @@ export default function AllUsersScreen() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Assign Role</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Assign Role
+              </label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as any)}

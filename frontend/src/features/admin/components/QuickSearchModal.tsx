@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, X, BookOpen, Users, LayoutDashboard, DollarSign, Settings, ArrowRight } from "lucide-react";
+import {
+  Search,
+  X,
+  BookOpen,
+  Users,
+  LayoutDashboard,
+  DollarSign,
+  Settings,
+  ArrowRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface QuickSearchModalProps {
@@ -7,7 +16,10 @@ interface QuickSearchModalProps {
   onClose: () => void;
 }
 
-export default function QuickSearchModal({ isOpen, onClose }: QuickSearchModalProps) {
+export default function QuickSearchModal({
+  isOpen,
+  onClose,
+}: QuickSearchModalProps) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
@@ -31,22 +43,73 @@ export default function QuickSearchModal({ isOpen, onClose }: QuickSearchModalPr
   if (!isOpen) return null;
 
   const quickLinks = [
-    { label: "Overview Dashboard", path: "/admin/dashboard", icon: LayoutDashboard, category: "Navigation" },
-    { label: "All Courses Catalog", path: "/admin/courses", icon: BookOpen, category: "Navigation" },
-    { label: "Create New Course", path: "/admin/courses/create", icon: BookOpen, category: "Actions" },
-    { label: "Course Categories", path: "/admin/categories", icon: BookOpen, category: "Navigation" },
-    { label: "Pending Approvals", path: "/admin/courses/pending", icon: BookOpen, category: "Actions" },
-    { label: "All Platform Users", path: "/admin/users", icon: Users, category: "Navigation" },
-    { label: "Students List", path: "/admin/students", icon: Users, category: "Navigation" },
-    { label: "Instructors Management", path: "/admin/instructors", icon: Users, category: "Navigation" },
-    { label: "Revenue & Earnings", path: "/admin/revenue", icon: DollarSign, category: "Analytics" },
-    { label: "System Settings", path: "/admin/settings", icon: Settings, category: "Configuration" },
+    {
+      label: "Overview Dashboard",
+      path: "/admin/dashboard",
+      icon: LayoutDashboard,
+      category: "Navigation",
+    },
+    {
+      label: "All Courses Catalog",
+      path: "/admin/courses",
+      icon: BookOpen,
+      category: "Navigation",
+    },
+    {
+      label: "Create New Course",
+      path: "/admin/courses/create",
+      icon: BookOpen,
+      category: "Actions",
+    },
+    {
+      label: "Course Categories",
+      path: "/admin/categories",
+      icon: BookOpen,
+      category: "Navigation",
+    },
+    {
+      label: "Pending Approvals",
+      path: "/admin/courses/pending",
+      icon: BookOpen,
+      category: "Actions",
+    },
+    {
+      label: "All Platform Users",
+      path: "/admin/users",
+      icon: Users,
+      category: "Navigation",
+    },
+    {
+      label: "Students List",
+      path: "/admin/students",
+      icon: Users,
+      category: "Navigation",
+    },
+    {
+      label: "Instructors Management",
+      path: "/admin/instructors",
+      icon: Users,
+      category: "Navigation",
+    },
+    {
+      label: "Revenue & Earnings",
+      path: "/admin/revenue",
+      icon: DollarSign,
+      category: "Analytics",
+    },
+    {
+      label: "System Settings",
+      path: "/admin/settings",
+      icon: Settings,
+      category: "Configuration",
+    },
   ];
 
   const filteredLinks = query.trim()
-    ? quickLinks.filter((link) =>
-        link.label.toLowerCase().includes(query.toLowerCase()) ||
-        link.category.toLowerCase().includes(query.toLowerCase())
+    ? quickLinks.filter(
+        (link) =>
+          link.label.toLowerCase().includes(query.toLowerCase()) ||
+          link.category.toLowerCase().includes(query.toLowerCase()),
       )
     : quickLinks;
 
@@ -58,13 +121,9 @@ export default function QuickSearchModal({ isOpen, onClose }: QuickSearchModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-10">
+      <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl z-10">
         {/* Search Input Bar */}
         <div className="flex items-center px-4 border-b border-slate-100">
           <Search className="w-5 h-5 text-slate-400 shrink-0" />
@@ -90,7 +149,7 @@ export default function QuickSearchModal({ isOpen, onClose }: QuickSearchModalPr
         </div>
 
         {/* Search Results */}
-        <div className="max-h-96 overflow-y-auto p-3 space-y-1">
+        <div className="min-h-0 max-h-96 overflow-y-auto p-3 space-y-1">
           {filteredLinks.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">
               No matching admin pages or actions found for "{query}".
@@ -123,8 +182,14 @@ export default function QuickSearchModal({ isOpen, onClose }: QuickSearchModalPr
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-          <span>Tip: Press <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono">⌘ K</kbd> to open search anytime</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 text-xs text-slate-500 border-t border-slate-100">
+          <span>
+            Tip: Press{" "}
+            <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono">
+              ⌘ K
+            </kbd>{" "}
+            to open search anytime
+          </span>
           <span>TOTC Admin System</span>
         </div>
       </div>

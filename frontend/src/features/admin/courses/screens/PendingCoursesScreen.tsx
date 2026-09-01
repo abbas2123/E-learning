@@ -5,7 +5,8 @@ import { toast } from "sonner";
 
 export default function PendingCoursesScreen() {
   const [pendingCourses, setPendingCourses] = useState<AdminCourse[]>([]);
-  const [rejectModalCourse, setRejectModalCourse] = useState<AdminCourse | null>(null);
+  const [rejectModalCourse, setRejectModalCourse] =
+    useState<AdminCourse | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
@@ -22,7 +23,9 @@ export default function PendingCoursesScreen() {
     e.preventDefault();
     if (!rejectModalCourse) return;
     await adminService.rejectCourse(rejectModalCourse.id, rejectReason);
-    setPendingCourses((prev) => prev.filter((c) => c.id !== rejectModalCourse.id));
+    setPendingCourses((prev) =>
+      prev.filter((c) => c.id !== rejectModalCourse.id),
+    );
     toast.info(`"${rejectModalCourse.title}" was rejected and feedback sent.`);
     setRejectModalCourse(null);
     setRejectReason("");
@@ -31,15 +34,23 @@ export default function PendingCoursesScreen() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Pending Course Approvals</h2>
-        <p className="text-xs text-slate-500 mt-1">Review new courses submitted by instructors before publishing</p>
+        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          Pending Course Approvals
+        </h2>
+        <p className="text-xs text-slate-500 mt-1">
+          Review new courses submitted by instructors before publishing
+        </p>
       </div>
 
       {pendingCourses.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
           <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-slate-900">All Course Reviews Completed</h3>
-          <p className="text-xs text-slate-500 mt-1">No pending instructor submissions at this time.</p>
+          <h3 className="text-lg font-bold text-slate-900">
+            All Course Reviews Completed
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            No pending instructor submissions at this time.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -59,14 +70,29 @@ export default function PendingCoursesScreen() {
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold flex items-center gap-1">
                       <Clock className="w-3 h-3" /> Pending Review
                     </span>
-                    <span className="text-xs text-slate-400">Submitted: {course.createdAt}</span>
+                    <span className="text-xs text-slate-400">
+                      Submitted: {course.createdAt}
+                    </span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">{course.title}</h3>
-                  <p className="text-xs text-slate-600">Instructor: <strong className="text-slate-900">{course.instructor}</strong></p>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {course.title}
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    Instructor:{" "}
+                    <strong className="text-slate-900">
+                      {course.instructor}
+                    </strong>
+                  </p>
                   <div className="flex items-center gap-4 text-xs text-slate-500 pt-1">
-                    <span>Category: <strong>{course.category}</strong></span>
-                    <span>Price: <strong>₹{course.price}</strong></span>
-                    <span>Modules: <strong>{course.modulesCount || 12}</strong></span>
+                    <span>
+                      Category: <strong>{course.category}</strong>
+                    </span>
+                    <span>
+                      Price: <strong>₹{course.price}</strong>
+                    </span>
+                    <span>
+                      Modules: <strong>{course.modulesCount || 12}</strong>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -95,10 +121,15 @@ export default function PendingCoursesScreen() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <form
             onSubmit={handleRejectSubmit}
-            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 space-y-4 shadow-2xl border border-slate-200 sm:p-6"
           >
-            <h3 className="font-bold text-slate-900 text-lg">Reject Course Submission</h3>
-            <p className="text-xs text-slate-500">Provide feedback for {rejectModalCourse.instructor} regarding why this course requires changes.</p>
+            <h3 className="font-bold text-slate-900 text-lg">
+              Reject Course Submission
+            </h3>
+            <p className="text-xs text-slate-500">
+              Provide feedback for {rejectModalCourse.instructor} regarding why
+              this course requires changes.
+            </p>
             <textarea
               required
               rows={4}

@@ -39,7 +39,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       setQuestion("");
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to post question.");
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to post question.",
+      );
     } finally {
       setLoading(false);
     }
@@ -47,10 +51,12 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700 animate-in fade-in zoom-in duration-200 sm:p-6">
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Ask a Question</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Ask a Question
+            </h3>
             {lessonTitle && (
               <p className="text-xs text-teal-600 dark:text-teal-400 font-medium">
                 Regarding: {lessonTitle}
@@ -101,7 +107,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}

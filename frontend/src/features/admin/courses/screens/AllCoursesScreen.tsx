@@ -10,7 +10,8 @@ export default function AllCoursesScreen() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [selectedCourseModal, setSelectedCourseModal] = useState<AdminCourse | null>(null);
+  const [selectedCourseModal, setSelectedCourseModal] =
+    useState<AdminCourse | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,8 +25,11 @@ export default function AllCoursesScreen() {
     const matchesSearch =
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.instructor.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = selectedCategory === "all" || c.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesStatus = selectedStatus === "all" || c.status === selectedStatus;
+    const matchesCat =
+      selectedCategory === "all" ||
+      c.category.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesStatus =
+      selectedStatus === "all" || c.status === selectedStatus;
     return matchesSearch && matchesCat && matchesStatus;
   });
 
@@ -46,8 +50,12 @@ export default function AllCoursesScreen() {
       {/* Header & Primary Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">All Platform Courses</h2>
-          <p className="text-xs text-slate-500 mt-1">Manage catalog, pricing, status, and course details</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            All Platform Courses
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage catalog, pricing, status, and course details
+          </p>
         </div>
         <button
           onClick={() => navigate("/admin/courses/create")}
@@ -105,9 +113,13 @@ export default function AllCoursesScreen() {
       {/* Courses Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-slate-400">Loading courses catalog...</div>
+          <div className="p-12 text-center text-slate-400">
+            Loading courses catalog...
+          </div>
         ) : filteredCourses.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-sm">No courses match your filter criteria.</div>
+          <div className="p-12 text-center text-slate-500 text-sm">
+            No courses match your filter criteria.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-600">
@@ -124,7 +136,10 @@ export default function AllCoursesScreen() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredCourses.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50/80 transition-colors"
+                  >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <img
@@ -133,8 +148,12 @@ export default function AllCoursesScreen() {
                           className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200"
                         />
                         <div>
-                          <p className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1">{item.title}</p>
-                          <p className="text-[11px] text-slate-400">{item.instructor}</p>
+                          <p className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1">
+                            {item.title}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {item.instructor}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -143,8 +162,12 @@ export default function AllCoursesScreen() {
                         {item.category}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-bold text-slate-900">₹{item.price}</td>
-                    <td className="py-4 px-6 text-xs text-slate-600 font-medium">{item.studentsCount.toLocaleString()}</td>
+                    <td className="py-4 px-6 font-bold text-slate-900">
+                      ₹{item.price}
+                    </td>
+                    <td className="py-4 px-6 text-xs text-slate-600 font-medium">
+                      {item.studentsCount.toLocaleString()}
+                    </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-1 text-xs font-bold text-amber-600">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -157,8 +180,8 @@ export default function AllCoursesScreen() {
                           item.status === "published"
                             ? "bg-emerald-50 text-emerald-700"
                             : item.status === "pending"
-                            ? "bg-amber-50 text-amber-700"
-                            : "bg-slate-100 text-slate-600"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-slate-100 text-slate-600"
                         }`}
                       >
                         {item.status}
@@ -193,9 +216,11 @@ export default function AllCoursesScreen() {
       {/* Course Detail Modal */}
       {selectedCourseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 space-y-4 shadow-2xl border border-slate-200 sm:p-6">
             <div className="flex items-start justify-between">
-              <h3 className="font-bold text-slate-900 text-lg">{selectedCourseModal.title}</h3>
+              <h3 className="font-bold text-slate-900 text-lg">
+                {selectedCourseModal.title}
+              </h3>
               <button
                 onClick={() => setSelectedCourseModal(null)}
                 className="text-slate-400 hover:text-slate-600 font-bold"
@@ -209,12 +234,29 @@ export default function AllCoursesScreen() {
               className="w-full h-40 object-cover rounded-xl border border-slate-200"
             />
             <div className="space-y-2 text-xs text-slate-600">
-              <p><strong>Instructor:</strong> {selectedCourseModal.instructor}</p>
-              <p><strong>Category:</strong> {selectedCourseModal.category}</p>
-              <p><strong>Price:</strong> ${selectedCourseModal.price}</p>
-              <p><strong>Level:</strong> {selectedCourseModal.level || "Intermediate"}</p>
-              <p><strong>Enrolled Students:</strong> {selectedCourseModal.studentsCount}</p>
-              <p><strong>Status:</strong> <span className="capitalize font-semibold">{selectedCourseModal.status}</span></p>
+              <p>
+                <strong>Instructor:</strong> {selectedCourseModal.instructor}
+              </p>
+              <p>
+                <strong>Category:</strong> {selectedCourseModal.category}
+              </p>
+              <p>
+                <strong>Price:</strong> ${selectedCourseModal.price}
+              </p>
+              <p>
+                <strong>Level:</strong>{" "}
+                {selectedCourseModal.level || "Intermediate"}
+              </p>
+              <p>
+                <strong>Enrolled Students:</strong>{" "}
+                {selectedCourseModal.studentsCount}
+              </p>
+              <p>
+                <strong>Status:</strong>{" "}
+                <span className="capitalize font-semibold">
+                  {selectedCourseModal.status}
+                </span>
+              </p>
             </div>
             <div className="pt-2 flex justify-end">
               <button

@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import quizService from "../../quiz/service/quizService";
-import type { Quiz, QuizQuestion, QuizOption } from "../../quiz/types/quiz.types";
+import type {
+  Quiz,
+  QuizQuestion,
+  QuizOption,
+} from "../../quiz/types/quiz.types";
 import apiClient from "../../../services/apiClient";
 import { toast } from "sonner";
 import {
@@ -37,7 +41,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
   // Question Modal State
   const [questionModalOpen, setQuestionModalOpen] = useState(false);
   const [questionText, setQuestionText] = useState("");
-  const [questionType, setQuestionType] = useState<"single_choice" | "multiple_choice" | "true_false">("single_choice");
+  const [questionType, setQuestionType] = useState<
+    "single_choice" | "multiple_choice" | "true_false"
+  >("single_choice");
   const [options, setOptions] = useState<QuizOption[]>([
     { id: "opt-1", text: "Option A" },
     { id: "opt-2", text: "Option B" },
@@ -103,7 +109,10 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
     }
   };
 
-  const handleTogglePublish = async (quizId: string, currentStatus: boolean) => {
+  const handleTogglePublish = async (
+    quizId: string,
+    currentStatus: boolean,
+  ) => {
     try {
       await apiClient.put(`/api/quizzes/${quizId}`, {
         isPublished: !currentStatus,
@@ -111,7 +120,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
       toast.success(!currentStatus ? "Quiz published." : "Quiz unpublished.");
       fetchQuizzes();
       if (selectedQuiz?.id === quizId) {
-        setSelectedQuiz((prev) => (prev ? { ...prev, isPublished: !currentStatus } : null));
+        setSelectedQuiz((prev) =>
+          prev ? { ...prev, isPublished: !currentStatus } : null,
+        );
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to update quiz status.");
@@ -226,8 +237,12 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
             <HelpCircle size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white">Assessment Quizzes ({quizzes.length})</h3>
-            <p className="text-xs text-slate-400">Build quizzes and auto-graded knowledge tests for this course.</p>
+            <h3 className="font-bold text-sm text-white">
+              Assessment Quizzes ({quizzes.length})
+            </h3>
+            <p className="text-xs text-slate-400">
+              Build quizzes and auto-graded knowledge tests for this course.
+            </p>
           </div>
         </div>
 
@@ -245,7 +260,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Quiz Selector */}
         <div className="space-y-3 md:col-span-1">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quizzes</h4>
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Quizzes
+          </h4>
           {quizzes.length === 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 text-center text-xs text-slate-500">
               No quizzes created yet.
@@ -293,23 +310,34 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
               {/* Active Quiz Header */}
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-white">{selectedQuiz.title}</h3>
+                  <h3 className="text-lg font-bold text-white">
+                    {selectedQuiz.title}
+                  </h3>
                   {selectedQuiz.description && (
-                    <p className="text-xs text-slate-400 mt-1">{selectedQuiz.description}</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {selectedQuiz.description}
+                    </p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleTogglePublish(selectedQuiz.id, selectedQuiz.isPublished)}
+                    onClick={() =>
+                      handleTogglePublish(
+                        selectedQuiz.id,
+                        selectedQuiz.isPublished,
+                      )
+                    }
                     className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                       selectedQuiz.isPublished
                         ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
                         : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30"
                     }`}
                   >
-                    {selectedQuiz.isPublished ? "Unpublish Quiz" : "Publish Quiz"}
+                    {selectedQuiz.isPublished
+                      ? "Unpublish Quiz"
+                      : "Publish Quiz"}
                   </button>
 
                   <button
@@ -340,7 +368,8 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
 
                 {questions.length === 0 ? (
                   <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 text-center text-xs text-slate-500">
-                    No questions added to this quiz yet. Click &quot;Add Question&quot; to begin.
+                    No questions added to this quiz yet. Click &quot;Add
+                    Question&quot; to begin.
                   </div>
                 ) : (
                   questions.map((q, idx) => (
@@ -354,9 +383,12 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
                             {idx + 1}
                           </span>
                           <div>
-                            <span className="font-bold text-slate-200 block text-sm">{q.questionText}</span>
+                            <span className="font-bold text-slate-200 block text-sm">
+                              {q.questionText}
+                            </span>
                             <span className="text-[10px] text-slate-500 capitalize">
-                              {q.questionType.replace("_", " ")} • {q.points} {q.points === 1 ? "point" : "points"}
+                              {q.questionType.replace("_", " ")} • {q.points}{" "}
+                              {q.points === 1 ? "point" : "points"}
                             </span>
                           </div>
                         </div>
@@ -398,11 +430,15 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
       {/* Create Quiz Modal */}
       {quizModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 text-white shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Create New Assessment Quiz</h3>
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-4 text-white shadow-2xl space-y-4 sm:p-6">
+            <h3 className="text-base font-bold text-white">
+              Create New Assessment Quiz
+            </h3>
             <form onSubmit={handleCreateQuiz} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Quiz Title</label>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Quiz Title
+                </label>
                 <input
                   type="text"
                   required
@@ -414,7 +450,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Instructions / Description</label>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Instructions / Description
+                </label>
                 <textarea
                   rows={2}
                   value={quizDescription}
@@ -426,19 +464,25 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Passing Score (%)</label>
+                  <label className="block text-slate-400 font-medium mb-1">
+                    Passing Score (%)
+                  </label>
                   <input
                     type="number"
                     min={0}
                     max={100}
                     value={quizPassingScore}
-                    onChange={(e) => setQuizPassingScore(Number(e.target.value))}
+                    onChange={(e) =>
+                      setQuizPassingScore(Number(e.target.value))
+                    }
                     className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 font-medium mb-1">Time Limit (Seconds)</label>
+                  <label className="block text-slate-400 font-medium mb-1">
+                    Time Limit (Seconds)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -474,11 +518,13 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
       {/* Create Question Modal */}
       {questionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 text-white shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-4 text-white shadow-2xl space-y-4 sm:p-6">
             <h3 className="text-base font-bold text-white">Add Question</h3>
             <form onSubmit={handleSaveQuestion} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Question Prompt</label>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Question Prompt
+                </label>
                 <input
                   type="text"
                   required
@@ -490,14 +536,18 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Question Type</label>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Question Type
+                </label>
                 <select
                   value={questionType}
                   onChange={(e) => setQuestionType(e.target.value as any)}
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="single_choice">Single Choice (Radio)</option>
-                  <option value="multiple_choice">Multiple Choice (Checkboxes)</option>
+                  <option value="multiple_choice">
+                    Multiple Choice (Checkboxes)
+                  </option>
                   <option value="true_false">True / False</option>
                 </select>
               </div>
@@ -505,7 +555,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
               {/* Options Builder */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-400 font-medium">Answer Options</label>
+                  <label className="block text-slate-400 font-medium">
+                    Answer Options
+                  </label>
                   <button
                     type="button"
                     onClick={handleAddOption}
@@ -535,7 +587,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
                         type="text"
                         required
                         value={opt.text}
-                        onChange={(e) => handleOptionTextChange(opt.id, e.target.value)}
+                        onChange={(e) =>
+                          handleOptionTextChange(opt.id, e.target.value)
+                        }
                         className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
                       />
 
@@ -552,7 +606,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Explanation (Shown after submission)</label>
+                <label className="block text-slate-400 font-medium mb-1">
+                  Explanation (Shown after submission)
+                </label>
                 <textarea
                   rows={2}
                   value={explanation}
@@ -575,7 +631,9 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
                   disabled={savingQuestion}
                   className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 font-bold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {savingQuestion && <Loader2 size={14} className="animate-spin" />}
+                  {savingQuestion && (
+                    <Loader2 size={14} className="animate-spin" />
+                  )}
                   Save Question
                 </button>
               </div>

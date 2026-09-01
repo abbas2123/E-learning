@@ -10,7 +10,7 @@ export function InstructorLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+    <div className="flex h-screen w-full min-w-0 overflow-hidden bg-slate-950 text-slate-100">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:shrink-0">
         <InstructorSidebar />
@@ -34,7 +34,7 @@ export function InstructorLayout() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 backdrop-blur">
           <div className="flex items-center gap-3">
@@ -48,10 +48,10 @@ export function InstructorLayout() {
 
             <Link
               to="/"
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-400 transition"
+              className="flex min-w-0 items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-400 transition"
             >
               <ArrowLeft size={14} />
-              <span>Back to Student Site</span>
+              <span className="truncate">Back to Student Site</span>
             </Link>
           </div>
 
@@ -66,11 +66,17 @@ export function InstructorLayout() {
                 />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-black text-white">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={14} />}
+                  {user?.name ? (
+                    user.name.charAt(0).toUpperCase()
+                  ) : (
+                    <UserIcon size={14} />
+                  )}
                 </div>
               )}
               <div className="hidden sm:block text-left">
-                <span className="block text-xs font-bold text-white">{user?.name}</span>
+                <span className="block text-xs font-bold text-white">
+                  {user?.name}
+                </span>
                 <span className="block text-[10px] font-medium text-slate-400 capitalize">
                   {user?.role}
                 </span>

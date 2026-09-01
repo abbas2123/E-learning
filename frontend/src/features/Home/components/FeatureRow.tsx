@@ -39,9 +39,9 @@ export default function FeatureRow({
         <div
           className={`order-1 ${
             reverse ? "lg:order-2 lg:col-span-7" : "lg:order-1 lg:col-span-7"
-          } flex justify-center items-center`}
+          } min-w-0 flex justify-center items-center`}
         >
-          <div className="w-full transition-all duration-500 transform group-hover:scale-[1.02] group-hover:-translate-y-1">
+          <div className="min-w-0 w-full transition-all duration-500 transform group-hover:scale-[1.02] group-hover:-translate-y-1">
             {illustration}
           </div>
         </div>
@@ -52,7 +52,7 @@ export default function FeatureRow({
             reverse
               ? "lg:order-1 lg:col-span-5 text-center lg:text-left"
               : "lg:order-2 lg:col-span-5 text-center lg:text-left"
-          } flex flex-col justify-center gap-6`}
+          } min-w-0 flex flex-col justify-center gap-6`}
         >
           <div className="space-y-4">
             <h3 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight leading-tight">

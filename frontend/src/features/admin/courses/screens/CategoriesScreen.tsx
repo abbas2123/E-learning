@@ -47,8 +47,12 @@ export default function CategoriesScreen() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Course Categories</h2>
-          <p className="text-xs text-slate-500 mt-1">Organize courses into taxonomy categories & tags</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Course Categories
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Organize courses into taxonomy categories & tags
+          </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -69,8 +73,12 @@ export default function CategoriesScreen() {
                 <FolderTree className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">{cat.name}</h3>
-                <p className="text-xs text-slate-400 font-mono mt-0.5">/{cat.slug}</p>
+                <h3 className="font-bold text-slate-900 text-base">
+                  {cat.name}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  /{cat.slug}
+                </p>
                 <div className="mt-3 inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
                   {cat.coursesCount} Courses attached
                 </div>
@@ -92,14 +100,24 @@ export default function CategoriesScreen() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <form
             onSubmit={handleAdd}
-            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 space-y-4 shadow-2xl border border-slate-200 sm:p-6"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-lg">Add New Category</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400">✕</button>
+              <h3 className="font-bold text-slate-900 text-lg">
+                Add New Category
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400"
+              >
+                ✕
+              </button>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Category Name</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Category Name
+              </label>
               <input
                 type="text"
                 required
@@ -110,7 +128,9 @@ export default function CategoriesScreen() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">URL Slug (Optional)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                URL Slug (Optional)
+              </label>
               <input
                 type="text"
                 value={slug}

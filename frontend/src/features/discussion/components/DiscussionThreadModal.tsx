@@ -61,7 +61,10 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
     try {
       setSubmittingReply(true);
       setError(null);
-      const newReply = await discussionService.createReply(discussionId, replyContent.trim());
+      const newReply = await discussionService.createReply(
+        discussionId,
+        replyContent.trim(),
+      );
       setReplies((prev) => [...prev, newReply]);
       setReplyContent("");
       // Refresh discussion status
@@ -138,7 +141,8 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
 
   if (!discussionId) return null;
 
-  const isInstructor = currentUserRole === "instructor" || currentUserRole === "admin";
+  const isInstructor =
+    currentUserRole === "instructor" || currentUserRole === "admin";
   const isAuthor = discussion?.studentId === currentUserId;
   const canResolve = isAuthor || isInstructor;
 
@@ -158,10 +162,10 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {discussion?.isPinned && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
                 📌 Pinned
@@ -177,7 +181,7 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                 Instructor Answered
               </span>
             )}
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">
+            <h3 className="min-w-0 font-bold text-slate-900 dark:text-slate-100 text-lg">
               Discussion Thread
             </h3>
           </div>
@@ -193,9 +197,13 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loading ? (
-            <div className="py-12 text-center text-slate-500">Loading thread...</div>
+            <div className="py-12 text-center text-slate-500">
+              Loading thread...
+            </div>
           ) : error ? (
-            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>
+            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+              {error}
+            </div>
           ) : discussion ? (
             <>
               {/* Main Question Card */}
@@ -210,7 +218,9 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                       />
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-teal-500 text-white flex items-center justify-center font-bold text-xs">
-                        {discussion.author?.name ? discussion.author.name[0].toUpperCase() : "U"}
+                        {discussion.author?.name
+                          ? discussion.author.name[0].toUpperCase()
+                          : "U"}
                       </div>
                     )}
                     <div>
@@ -241,11 +251,15 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                             : "bg-emerald-600 text-white hover:bg-emerald-700"
                         }`}
                       >
-                        {discussion.status === "resolved" ? "Reopen" : "✓ Mark Resolved"}
+                        {discussion.status === "resolved"
+                          ? "Reopen"
+                          : "✓ Mark Resolved"}
                       </button>
                     )}
                     <button
-                      onClick={() => setReportingItem({ discussionId: discussion.id })}
+                      onClick={() =>
+                        setReportingItem({ discussionId: discussion.id })
+                      }
                       className="text-xs text-slate-400 hover:text-red-500 p-1"
                       title="Report content"
                     >
@@ -295,7 +309,9 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                             />
                           ) : (
                             <div className="w-6 h-6 rounded-full bg-slate-500 text-white flex items-center justify-center font-bold text-xs">
-                              {reply.author?.name ? reply.author.name[0].toUpperCase() : "U"}
+                              {reply.author?.name
+                                ? reply.author.name[0].toUpperCase()
+                                : "U"}
                             </div>
                           )}
                           <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
@@ -312,7 +328,8 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {(reply.authorId === currentUserId || isInstructor) && (
+                          {(reply.authorId === currentUserId ||
+                            isInstructor) && (
                             <button
                               onClick={() => handleDeleteReply(reply.id)}
                               className="text-xs text-slate-400 hover:text-red-500"
@@ -323,7 +340,10 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
                           )}
                           <button
                             onClick={() =>
-                              setReportingItem({ discussionId: discussion.id, replyId: reply.id })
+                              setReportingItem({
+                                discussionId: discussion.id,
+                                replyId: reply.id,
+                              })
                             }
                             className="text-xs text-slate-400 hover:text-red-500"
                             title="Report reply"
@@ -377,7 +397,9 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
       {reportingItem && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70">
           <div className="bg-white dark:bg-slate-800 rounded-xl p-5 max-w-sm w-full space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-slate-100">Report Content</h4>
+            <h4 className="font-bold text-slate-900 dark:text-slate-100">
+              Report Content
+            </h4>
             <textarea
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}

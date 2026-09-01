@@ -34,7 +34,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         (c) =>
           c.title.toLowerCase().includes(query.toLowerCase()) ||
           c.category.toLowerCase().includes(query.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(query.toLowerCase())),
+          (c.description &&
+            c.description.toLowerCase().includes(query.toLowerCase())),
       )
     : courses.slice(0, 4); // Suggest top 4 when query empty
 
@@ -46,7 +47,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 p-4 pt-16 backdrop-blur-sm sm:pt-24">
       <div
-        className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl transition-all"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Header */}
@@ -70,7 +71,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </div>
 
         {/* Results Container */}
-        <div className="max-h-96 overflow-y-auto p-4">
+        <div className="min-h-0 max-h-96 overflow-y-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center py-10 text-slate-400">
               <Loader2 size={24} className="animate-spin text-indigo-600" />
@@ -82,7 +83,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 No courses found for "{query}"
               </p>
               <p className="text-xs text-slate-400">
-                Try searching for broader keywords like "Web", "Design", or "Data".
+                Try searching for broader keywords like "Web", "Design", or
+                "Data".
               </p>
             </div>
           ) : (
@@ -136,7 +138,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
           <span>Press ESC to exit</span>
           <button
             type="button"

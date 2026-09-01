@@ -19,15 +19,17 @@ export default function FooterSection() {
                   Join our newsletter
                 </p>
                 <form
-                  className="mt-3 flex w-full max-w-sm items-center gap-3"
+                  className="mt-3 flex w-full max-w-sm flex-col items-stretch gap-3 sm:flex-row sm:items-center"
                   onSubmit={(e) => e.preventDefault()}
                 >
                   <input
                     aria-label="Email"
                     placeholder="Enter your email"
-                    className="w-full rounded-full bg-slate-900/60 px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                    className="min-w-0 w-full rounded-full bg-slate-900/60 px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
                   />
-                  <Button variant="primary">Subscribe</Button>
+                  <Button variant="primary" className="w-full sm:w-auto">
+                    Subscribe
+                  </Button>
                 </form>
                 <p className="mt-2 text-xs text-slate-500">
                   No spam — unsubscribe anytime.

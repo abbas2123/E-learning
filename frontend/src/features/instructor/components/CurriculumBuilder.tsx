@@ -54,13 +54,17 @@ export function CurriculumBuilder({
 
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonDescription, setLessonDescription] = useState("");
-  const [lessonType, setLessonType] = useState<"video" | "text" | "quiz" | "assignment">("video");
+  const [lessonType, setLessonType] = useState<
+    "video" | "text" | "quiz" | "assignment"
+  >("video");
   const [lessonDuration, setLessonDuration] = useState(10);
   const [lessonIsPreview, setLessonIsPreview] = useState(false);
   const [savingLesson, setSavingLesson] = useState(false);
 
   // ── Video Lesson State ──
-  const [videoSourceMode, setVideoSourceMode] = useState<"upload" | "external">("external");
+  const [videoSourceMode, setVideoSourceMode] = useState<"upload" | "external">(
+    "external",
+  );
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -105,7 +109,12 @@ export function CurriculumBuilder({
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm("Are you sure you want to delete this section and all its lessons?")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this section and all its lessons?",
+      )
+    )
+      return;
     try {
       await curriculumService.deleteSection(sectionId);
       toast.success("Section deleted.");
@@ -115,7 +124,10 @@ export function CurriculumBuilder({
     }
   };
 
-  const handleReorderSection = async (index: number, direction: "up" | "down") => {
+  const handleReorderSection = async (
+    index: number,
+    direction: "up" | "down",
+  ) => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= sections.length) return;
 
@@ -145,7 +157,8 @@ export function CurriculumBuilder({
       setLessonType(lesson.type || "video");
       setLessonVideoUrl(lesson.videoUrl || "");
       setVideoSourceMode(
-        lesson.videoSourceType === "uploaded" || (lesson.videoUrl && lesson.videoUrl.includes("cloudinary.com"))
+        lesson.videoSourceType === "uploaded" ||
+          (lesson.videoUrl && lesson.videoUrl.includes("cloudinary.com"))
           ? "upload"
           : "external",
       );
@@ -159,13 +172,20 @@ export function CurriculumBuilder({
           // Find quiz by quizId or lessonId
           const courseQuizzes = await quizService.getCourseQuizzes(courseId);
           const foundQuiz = courseQuizzes.find(
-            (q) => q.id === lesson.quizId || q.lessonId === lesson.id || q.id === lesson.id,
+            (q) =>
+              q.id === lesson.quizId ||
+              q.lessonId === lesson.id ||
+              q.id === lesson.id,
           );
 
           if (foundQuiz) {
             setAssociatedQuizId(foundQuiz.id);
             setQuizPassingScore(foundQuiz.passingScore || 70);
-            setQuizTimeLimitMinutes(foundQuiz.timeLimitSeconds ? Math.ceil(foundQuiz.timeLimitSeconds / 60) : 15);
+            setQuizTimeLimitMinutes(
+              foundQuiz.timeLimitSeconds
+                ? Math.ceil(foundQuiz.timeLimitSeconds / 60)
+                : 15,
+            );
 
             // Fetch questions (instructor gets them)
             const quizRes = await apiClient.get(`/api/quizzes/${foundQuiz.id}`);
@@ -176,14 +196,16 @@ export function CurriculumBuilder({
                 fetchedQuestions.map((q: any, idx: number) => ({
                   id: q.id || `q-${idx + 1}`,
                   questionText: q.questionText || "",
-                  options: q.options && q.options.length >= 2
-                    ? q.options
-                    : [
-                        { id: "opt-1", text: "Option A" },
-                        { id: "opt-2", text: "Option B" },
-                      ],
+                  options:
+                    q.options && q.options.length >= 2
+                      ? q.options
+                      : [
+                          { id: "opt-1", text: "Option A" },
+                          { id: "opt-2", text: "Option B" },
+                        ],
                   correctOptionId:
-                    Array.isArray(q.correctOptionIds) && q.correctOptionIds.length > 0
+                    Array.isArray(q.correctOptionIds) &&
+                    q.correctOptionIds.length > 0
                       ? q.correctOptionIds[0]
                       : q.options?.[0]?.id || "opt-1",
                   explanation: q.explanation || "",
@@ -242,7 +264,9 @@ export function CurriculumBuilder({
     }
 
     if (file.size > 150 * 1024 * 1024) {
-      toast.error("File size exceeds 150 MB limit. Please select a smaller video.");
+      toast.error(
+        "File size exceeds 150 MB limit. Please select a smaller video.",
+      );
       return;
     }
 
@@ -269,7 +293,11 @@ export function CurriculumBuilder({
       if (err.name === "CanceledError" || err.message === "canceled") {
         toast.info("Video upload cancelled.");
       } else {
-        toast.error(err.response?.data?.message || err.message || "Failed to upload video.");
+        toast.error(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to upload video.",
+        );
       }
       setSelectedFileName(null);
     } finally {
@@ -327,7 +355,13 @@ export function CurriculumBuilder({
         const newOptId = `opt-${Date.now()}-${q.options.length + 1}`;
         return {
           ...q,
-          options: [...q.options, { id: newOptId, text: `Option ${String.fromCharCode(65 + q.options.length)}` }],
+          options: [
+            ...q.options,
+            {
+              id: newOptId,
+              text: `Option ${String.fromCharCode(65 + q.options.length)}`,
+            },
+          ],
         };
       }),
     );
@@ -345,13 +379,18 @@ export function CurriculumBuilder({
         return {
           ...q,
           options: filtered,
-          correctOptionId: q.correctOptionId === optId ? filtered[0].id : q.correctOptionId,
+          correctOptionId:
+            q.correctOptionId === optId ? filtered[0].id : q.correctOptionId,
         };
       }),
     );
   };
 
-  const handleOptionTextChange = (qIndex: number, optId: string, text: string) => {
+  const handleOptionTextChange = (
+    qIndex: number,
+    optId: string,
+    text: string,
+  ) => {
     setQuestions((prev) =>
       prev.map((q, idx) => {
         if (idx !== qIndex) return q;
@@ -365,11 +404,16 @@ export function CurriculumBuilder({
 
   const handleSetCorrectOption = (qIndex: number, optId: string) => {
     setQuestions((prev) =>
-      prev.map((q, idx) => (idx === qIndex ? { ...q, correctOptionId: optId } : q)),
+      prev.map((q, idx) =>
+        idx === qIndex ? { ...q, correctOptionId: optId } : q,
+      ),
     );
   };
 
-  const handleQuestionExplanationChange = (qIndex: number, explanation: string) => {
+  const handleQuestionExplanationChange = (
+    qIndex: number,
+    explanation: string,
+  ) => {
     setQuestions((prev) =>
       prev.map((q, idx) => (idx === qIndex ? { ...q, explanation } : q)),
     );
@@ -406,12 +450,16 @@ export function CurriculumBuilder({
         }
         for (let j = 0; j < q.options.length; j++) {
           if (!q.options[j].text.trim()) {
-            toast.error(`Option ${j + 1} in Question ${i + 1} cannot be empty.`);
+            toast.error(
+              `Option ${j + 1} in Question ${i + 1} cannot be empty.`,
+            );
             return;
           }
         }
         if (!q.correctOptionId) {
-          toast.error(`Please select the correct answer for Question ${i + 1}.`);
+          toast.error(
+            `Please select the correct answer for Question ${i + 1}.`,
+          );
           return;
         }
       }
@@ -438,11 +486,17 @@ export function CurriculumBuilder({
       };
 
       if (editingLesson) {
-        const updated = await curriculumService.updateLesson(editingLesson.id, payload);
+        const updated = await curriculumService.updateLesson(
+          editingLesson.id,
+          payload,
+        );
         savedLessonId = updated.id;
         toast.success("Lesson updated.");
       } else if (activeSectionId) {
-        const created = await curriculumService.createLesson(activeSectionId, payload);
+        const created = await curriculumService.createLesson(
+          activeSectionId,
+          payload,
+        );
         savedLessonId = created.id;
         toast.success("Lesson created.");
       }
@@ -463,17 +517,24 @@ export function CurriculumBuilder({
           await apiClient.put(`/api/quizzes/${finalQuizId}`, quizPayload);
         } else {
           // Create new quiz linked to lesson
-          const quizRes = await apiClient.post(`/api/courses/${courseId}/quizzes`, quizPayload);
+          const quizRes = await apiClient.post(
+            `/api/courses/${courseId}/quizzes`,
+            quizPayload,
+          );
           finalQuizId = quizRes.data?.data?.id;
         }
 
         // Link quizId back to lesson if we have a new quizId
         if (finalQuizId && savedLessonId) {
-          await curriculumService.updateLesson(savedLessonId, { quizId: finalQuizId });
+          await curriculumService.updateLesson(savedLessonId, {
+            quizId: finalQuizId,
+          });
 
           // Persist all questions
           // Delete old questions if any and re-create to keep sync
-          const existingQRes = await apiClient.get(`/api/quizzes/${finalQuizId}`);
+          const existingQRes = await apiClient.get(
+            `/api/quizzes/${finalQuizId}`,
+          );
           const existingQs = existingQRes.data?.data?.questions || [];
           for (const oldQ of existingQs) {
             await apiClient.delete(`/api/questions/${oldQ.id}`).catch(() => {});
@@ -484,7 +545,10 @@ export function CurriculumBuilder({
             await apiClient.post(`/api/quizzes/${finalQuizId}/questions`, {
               questionText: q.questionText.trim(),
               questionType: "single_choice",
-              options: q.options.map((o) => ({ id: o.id, text: o.text.trim() })),
+              options: q.options.map((o) => ({
+                id: o.id,
+                text: o.text.trim(),
+              })),
               correctOptionIds: [q.correctOptionId],
               explanation: q.explanation?.trim() || null,
               points: 1,
@@ -493,14 +557,18 @@ export function CurriculumBuilder({
           }
 
           // Ensure quiz is marked published so students can take it
-          await apiClient.put(`/api/quizzes/${finalQuizId}`, { isPublished: true });
+          await apiClient.put(`/api/quizzes/${finalQuizId}`, {
+            isPublished: true,
+          });
         }
       }
 
       setLessonModalOpen(false);
       onRefresh();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || "Failed to save lesson.");
+      toast.error(
+        err.response?.data?.message || err.message || "Failed to save lesson.",
+      );
     } finally {
       setSavingLesson(false);
     }
@@ -618,15 +686,22 @@ export function CurriculumBuilder({
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-200">{les.title}</span>
+                          <span className="font-semibold text-slate-200">
+                            {les.title}
+                          </span>
                           {les.type === "quiz" && (
                             <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
-                              Quiz {les.questionCount ? `(${les.questionCount} Qs)` : ""}
+                              Quiz{" "}
+                              {les.questionCount
+                                ? `(${les.questionCount} Qs)`
+                                : ""}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-                          <span className="capitalize">{les.type || "video"}</span>
+                          <span className="capitalize">
+                            {les.type || "video"}
+                          </span>
                           <span>•</span>
                           <span>{les.duration} mins</span>
                           {les.isPreview && (
@@ -644,7 +719,9 @@ export function CurriculumBuilder({
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => handleReorderLesson(sec.id, sec.lessons, lesIdx, "up")}
+                        onClick={() =>
+                          handleReorderLesson(sec.id, sec.lessons, lesIdx, "up")
+                        }
                         disabled={lesIdx === 0}
                         className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
                       >
@@ -652,7 +729,14 @@ export function CurriculumBuilder({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleReorderLesson(sec.id, sec.lessons, lesIdx, "down")}
+                        onClick={() =>
+                          handleReorderLesson(
+                            sec.id,
+                            sec.lessons,
+                            lesIdx,
+                            "down",
+                          )
+                        }
                         disabled={lesIdx === sec.lessons.length - 1}
                         className="p-1 text-slate-400 hover:text-white disabled:opacity-30"
                       >
@@ -709,7 +793,11 @@ export function CurriculumBuilder({
           disabled={addingSection || !newSectionTitle.trim()}
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700 disabled:opacity-50"
         >
-          {addingSection ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          {addingSection ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Plus size={14} />
+          )}
           Add Section
         </button>
       </form>
@@ -717,7 +805,7 @@ export function CurriculumBuilder({
       {/* Lesson / Quiz Edit / Create Modal */}
       {lessonModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-800 bg-slate-900 p-6 md:p-8 text-white shadow-2xl space-y-6">
+          <div className="w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border border-slate-800 bg-slate-900 p-4 text-white shadow-2xl space-y-6 sm:p-6 md:p-8">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
                 <h3 className="text-lg font-bold text-white">
@@ -746,7 +834,10 @@ export function CurriculumBuilder({
 
             {loadingQuizDetails ? (
               <div className="flex flex-col items-center justify-center p-12 text-slate-400">
-                <Loader2 size={28} className="animate-spin text-indigo-500 mb-2" />
+                <Loader2
+                  size={28}
+                  className="animate-spin text-indigo-500 mb-2"
+                />
                 <span className="text-xs">Loading quiz questions...</span>
               </div>
             ) : (
@@ -755,7 +846,9 @@ export function CurriculumBuilder({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-400 font-medium mb-1">
-                      {lessonType === "quiz" ? "Quiz Title *" : "Lesson Title *"}
+                      {lessonType === "quiz"
+                        ? "Quiz Title *"
+                        : "Lesson Title *"}
                     </label>
                     <input
                       type="text"
@@ -772,7 +865,9 @@ export function CurriculumBuilder({
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 font-medium mb-1">Lesson Type *</label>
+                    <label className="block text-slate-400 font-medium mb-1">
+                      Lesson Type *
+                    </label>
                     <select
                       value={lessonType}
                       onChange={(e) => setLessonType(e.target.value as any)}
@@ -780,7 +875,9 @@ export function CurriculumBuilder({
                     >
                       <option value="video">📹 Video Lesson</option>
                       <option value="quiz">❓ Knowledge Quiz</option>
-                      <option value="assignment">📝 Practical Assignment</option>
+                      <option value="assignment">
+                        📝 Practical Assignment
+                      </option>
                       <option value="text">📖 Text / Reading Lesson</option>
                     </select>
                   </div>
@@ -790,7 +887,9 @@ export function CurriculumBuilder({
                 {lessonType === "video" && (
                   <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 md:p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-200">Video Content Source</span>
+                      <span className="font-bold text-slate-200">
+                        Video Content Source
+                      </span>
                       <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
                         <button
                           type="button"
@@ -839,21 +938,28 @@ export function CurriculumBuilder({
                             Choose Video File (.mp4, .webm, .mov)
                           </label>
                           <p className="mt-2 text-[11px] text-slate-400">
-                            Max file size 150 MB. Fast direct cloud streaming encoding.
+                            Max file size 150 MB. Fast direct cloud streaming
+                            encoding.
                           </p>
 
                           {selectedFileName && (
                             <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-indigo-300 border border-slate-700">
                               <Video size={14} />
-                              <span className="font-mono font-medium">{selectedFileName}</span>
+                              <span className="font-mono font-medium">
+                                {selectedFileName}
+                              </span>
                             </div>
                           )}
 
                           {uploadingFile && uploadProgress !== null && (
                             <div className="mt-4 space-y-2 max-w-sm mx-auto">
                               <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="text-slate-300">Uploading video stream...</span>
-                                <span className="text-indigo-400">{uploadProgress}%</span>
+                                <span className="text-slate-300">
+                                  Uploading video stream...
+                                </span>
+                                <span className="text-indigo-400">
+                                  {uploadProgress}%
+                                </span>
                               </div>
                               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                                 <div
@@ -875,7 +981,10 @@ export function CurriculumBuilder({
                         {lessonVideoUrl && (
                           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between">
                             <div className="flex items-center gap-2 text-emerald-300">
-                              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                              <CheckCircle2
+                                size={16}
+                                className="text-emerald-400 shrink-0"
+                              />
                               <span className="font-semibold truncate max-w-md">
                                 Video Ready: {lessonVideoUrl}
                               </span>
@@ -901,7 +1010,8 @@ export function CurriculumBuilder({
                             className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none font-mono text-xs"
                           />
                           <p className="mt-1 text-[11px] text-slate-400">
-                            Supports YouTube URLs, Vimeo URLs, direct MP4/WebM CDN links, and HLS (.m3u8) video streams.
+                            Supports YouTube URLs, Vimeo URLs, direct MP4/WebM
+                            CDN links, and HLS (.m3u8) video streams.
                           </p>
                         </div>
 
@@ -922,10 +1032,13 @@ export function CurriculumBuilder({
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
                       <div className="flex items-center gap-2 text-amber-400">
                         <HelpCircle size={18} />
-                        <span className="font-bold text-sm text-white">Quiz Question Builder</span>
+                        <span className="font-bold text-sm text-white">
+                          Quiz Question Builder
+                        </span>
                       </div>
                       <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-400 border border-amber-500/20">
-                        {questions.length} Question{questions.length !== 1 ? "s" : ""}
+                        {questions.length} Question
+                        {questions.length !== 1 ? "s" : ""}
                       </span>
                     </div>
 
@@ -939,11 +1052,14 @@ export function CurriculumBuilder({
                           min={10}
                           max={100}
                           value={quizPassingScore}
-                          onChange={(e) => setQuizPassingScore(Number(e.target.value))}
+                          onChange={(e) =>
+                            setQuizPassingScore(Number(e.target.value))
+                          }
                           className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white focus:border-indigo-500 focus:outline-none font-bold"
                         />
                         <span className="text-[10px] text-slate-500">
-                          Students must achieve this score to pass and receive course completion credit.
+                          Students must achieve this score to pass and receive
+                          course completion credit.
                         </span>
                       </div>
 
@@ -955,7 +1071,9 @@ export function CurriculumBuilder({
                           type="number"
                           min={0}
                           value={quizTimeLimitMinutes}
-                          onChange={(e) => setQuizTimeLimitMinutes(Number(e.target.value))}
+                          onChange={(e) =>
+                            setQuizTimeLimitMinutes(Number(e.target.value))
+                          }
                           className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white focus:border-indigo-500 focus:outline-none"
                         />
                       </div>
@@ -990,7 +1108,9 @@ export function CurriculumBuilder({
                               type="text"
                               required
                               value={q.questionText}
-                              onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
+                              onChange={(e) =>
+                                handleQuestionTextChange(qIdx, e.target.value)
+                              }
                               placeholder={`e.g. What is the difference between props and state in React?`}
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
                             />
@@ -999,7 +1119,10 @@ export function CurriculumBuilder({
                           {/* Options */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                              <span>Multiple-Choice Options (Select the correct answer)</span>
+                              <span>
+                                Multiple-Choice Options (Select the correct
+                                answer)
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => handleAddOptionToQuestion(qIdx)}
@@ -1026,7 +1149,9 @@ export function CurriculumBuilder({
                                       type="radio"
                                       name={`correct-opt-${q.id}`}
                                       checked={isCorrect}
-                                      onChange={() => handleSetCorrectOption(qIdx, opt.id)}
+                                      onChange={() =>
+                                        handleSetCorrectOption(qIdx, opt.id)
+                                      }
                                       title="Set as correct answer"
                                       className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                     />
@@ -1038,7 +1163,11 @@ export function CurriculumBuilder({
                                       required
                                       value={opt.text}
                                       onChange={(e) =>
-                                        handleOptionTextChange(qIdx, opt.id, e.target.value)
+                                        handleOptionTextChange(
+                                          qIdx,
+                                          opt.id,
+                                          e.target.value,
+                                        )
                                       }
                                       placeholder={`Option ${String.fromCharCode(65 + optIdx)} text...`}
                                       className="flex-1 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
@@ -1047,7 +1176,10 @@ export function CurriculumBuilder({
                                       <button
                                         type="button"
                                         onClick={() =>
-                                          handleRemoveOptionFromQuestion(qIdx, opt.id)
+                                          handleRemoveOptionFromQuestion(
+                                            qIdx,
+                                            opt.id,
+                                          )
                                         }
                                         className="p-1 text-slate-500 hover:text-rose-400"
                                       >
@@ -1062,13 +1194,17 @@ export function CurriculumBuilder({
 
                           <div>
                             <label className="block text-slate-400 font-medium mb-1">
-                              Explanation for Students (Optional — shown after quiz submission)
+                              Explanation for Students (Optional — shown after
+                              quiz submission)
                             </label>
                             <input
                               type="text"
                               value={q.explanation || ""}
                               onChange={(e) =>
-                                handleQuestionExplanationChange(qIdx, e.target.value)
+                                handleQuestionExplanationChange(
+                                  qIdx,
+                                  e.target.value,
+                                )
                               }
                               placeholder="e.g. Props are immutable and passed from parent; state is local and mutable."
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
@@ -1113,7 +1249,9 @@ export function CurriculumBuilder({
                       type="number"
                       min={1}
                       value={lessonDuration}
-                      onChange={(e) => setLessonDuration(Number(e.target.value))}
+                      onChange={(e) =>
+                        setLessonDuration(Number(e.target.value))
+                      }
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
@@ -1149,8 +1287,12 @@ export function CurriculumBuilder({
                     disabled={savingLesson || uploadingFile}
                     className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700 disabled:opacity-50"
                   >
-                    {savingLesson && <Loader2 size={14} className="animate-spin" />}
-                    {lessonType === "quiz" ? "Save Knowledge Quiz" : "Save Lesson"}
+                    {savingLesson && (
+                      <Loader2 size={14} className="animate-spin" />
+                    )}
+                    {lessonType === "quiz"
+                      ? "Save Knowledge Quiz"
+                      : "Save Lesson"}
                   </button>
                 </div>
               </form>

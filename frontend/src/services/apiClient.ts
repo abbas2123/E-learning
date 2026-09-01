@@ -17,7 +17,8 @@ apiClient.interceptors.request.use(
     }
 
     if (config.headers && !config.headers["X-Request-ID"]) {
-      config.headers["X-Request-ID"] = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      config.headers["X-Request-ID"] =
+        `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     }
 
     return config;
@@ -54,7 +55,14 @@ apiClient.interceptors.response.use(
     /*
      * Access token expired -> try refreshing automatically once
      */
-    if (status === 401 && !isAuthRequest && !originalRequest?._retry) {
+    const accessToken = localStorage.getItem("totc_token");
+
+    if (
+      status === 401 &&
+      accessToken &&
+      !isAuthRequest &&
+      !originalRequest?._retry
+    ) {
       originalRequest._retry = true;
 
       try {
