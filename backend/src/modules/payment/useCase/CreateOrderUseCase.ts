@@ -3,6 +3,7 @@ import type { IPaymentRepository } from "../interface/IPaymentRepository";
 import { UserModel } from "../../auth/Repository/database/User";
 import { CourseModel } from "../../course/repository/database/Course";
 import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
+import { ConflictError, NotFoundError } from "../../../core/errors/AppError";
 
 export interface CreateOrderResult {
   orderId: string;
@@ -20,12 +21,15 @@ export class CreateOrderUseCase {
       $or: [{ id: userId }, { email: userId }],
     });
     if (!user) {
-      throw new Error("Authenticated user not found.");
+      throw new NotFoundError(
+        "Authenticated user not found.",
+        "USER_NOT_FOUND",
+      );
     }
 
     const course = await CourseModel.findOne({ id: courseId });
     if (!course) {
-      throw new Error("Course not found.");
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
     }
 
     // Duplicate check
@@ -36,7 +40,10 @@ export class CreateOrderUseCase {
     });
 
     if (existingEnrollment) {
-      throw new Error("You are already enrolled in this course.");
+      throw new ConflictError(
+        "You are already enrolled in this course.",
+        "ALREADY_ENROLLED",
+      );
     }
 
     // Always determine price server-side in INR
@@ -45,7 +52,8 @@ export class CreateOrderUseCase {
     const currency = "INR";
 
     const keyId = process.env.RAZORPAY_KEY_ID || "rzp_test_totclearn";
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || "totc_razorpay_secret_key";
+    const keySecret =
+      process.env.RAZORPAY_KEY_SECRET || "totc_razorpay_secret_key";
 
     let orderId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
@@ -69,7 +77,10 @@ export class CreateOrderUseCase {
         orderId = order.id;
       }
     } catch (err) {
-      console.warn("Razorpay API order creation warning, using server test order ID fallback:", err);
+      console.warn(
+        "Razorpay API order creation warning, using server test order ID fallback:",
+        err,
+      );
     }
 
     // Persist pending payment in MongoDB

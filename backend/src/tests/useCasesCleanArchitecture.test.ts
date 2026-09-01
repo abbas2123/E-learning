@@ -255,6 +255,33 @@ test("GetCertificateStatusUseCase: blocks ineligible student when lessons are in
   assert.ok(status.reasons.some((r) => r.includes("remaining to complete")));
 });
 
+test("MarkLessonCompleteUseCase: reports insufficient video watch time as a typed 422 error", async () => {
+  const useCase = new MarkLessonCompleteUseCase(
+    createMockProgressRepo(),
+    createMockCourseRepo(),
+    createMockLessonRepo([
+      { id: "les_video", courseId: "c_1", duration: 10, type: "video" },
+    ]),
+    createMockEnrollmentRepo(true),
+  );
+
+  await assert.rejects(
+    () =>
+      useCase.execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_video",
+        watchedSeconds: 0,
+        userRole: "student",
+      }),
+    (error: any) =>
+      error.statusCode === 422 &&
+      error.code === "VIDEO_WATCH_TIME_INSUFFICIENT" &&
+      error.message.includes("0s watched of 600s") &&
+      error.message.includes("540s"),
+  );
+});
+
 test("GetCertificateStatusUseCase: grants eligibility when all lessons and quizzes pass minimum score", async () => {
   const lessons = [
     { id: "les_1", courseId: "c_1", duration: 10, type: "video" },

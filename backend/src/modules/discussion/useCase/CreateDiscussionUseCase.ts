@@ -2,8 +2,16 @@ import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
 import { CourseModel } from "../../course/repository/database/Course";
 import { LessonModel } from "../../curriculum/database/Lesson";
 import { NotificationModel } from "../../admin/Repository/database/Notification";
-import type { IDiscussionRepository, DiscussionDto } from "../interface/IDiscussionRepository";
+import type {
+  IDiscussionRepository,
+  DiscussionDto,
+} from "../interface/IDiscussionRepository";
 import { randomUUID } from "crypto";
+import {
+  EnrollmentRequiredError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class CreateDiscussionUseCase {
   constructor(private readonly discussionRepo: IDiscussionRepository) {}
@@ -16,8 +24,11 @@ export class CreateDiscussionUseCase {
     lessonId?: string | null,
   ): Promise<DiscussionDto> {
     // Validate course exists
-    const course = await CourseModel.findOne({ id: courseId }).select("id title createdBy");
-    if (!course) throw new Error("Course not found.");
+    const course = await CourseModel.findOne({ id: courseId }).select(
+      "id title createdBy",
+    );
+    if (!course)
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     // Verify student is enrolled
     const enrollment = await EnrollmentModel.findOne({
@@ -26,15 +37,18 @@ export class CreateDiscussionUseCase {
       status: "completed",
     });
     if (!enrollment) {
-      throw Object.assign(new Error("You must be enrolled in this course to ask a question."), { statusCode: 403 });
+      throw new EnrollmentRequiredError(
+        "You must be enrolled in this course to ask a question.",
+      );
     }
 
     // Validate lessonId if provided
     if (lessonId) {
       const lesson = await LessonModel.findOne({ id: lessonId });
-      if (!lesson) throw new Error("Lesson not found.");
+      if (!lesson)
+        throw new NotFoundError("Lesson not found.", "LESSON_NOT_FOUND");
       if (lesson.courseId !== courseId) {
-        throw Object.assign(new Error("Lesson does not belong to this course."), { statusCode: 400 });
+        throw new ValidationError("Lesson does not belong to this course.");
       }
     }
 

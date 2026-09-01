@@ -1,6 +1,11 @@
 import type { ISectionRepository } from "../interface/ISectionRepository";
 import type { ILessonRepository } from "../interface/ILessonRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface DeleteSectionInput {
   sectionId: string;
@@ -17,15 +22,16 @@ export class DeleteSectionUseCase {
   async execute(input: DeleteSectionInput): Promise<boolean> {
     const { sectionId, userId, userRole } = input;
 
-    if (!sectionId) throw new Error("Section ID is required.");
+    if (!sectionId) throw new ValidationError("Section ID is required.");
 
     const section = await this.sectionRepository.findById(sectionId);
-    if (!section) throw new Error("Section not found.");
+    if (!section)
+      throw new NotFoundError("Section not found.", "SECTION_NOT_FOUND");
 
     if (userRole !== "admin") {
       const course = await CourseModel.findOne({ id: section.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to delete this section.");
+        throw new ForbiddenError("You are not allowed to delete this section.");
       }
     }
 

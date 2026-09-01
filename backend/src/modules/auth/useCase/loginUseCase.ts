@@ -4,7 +4,11 @@ import { IUserRepository } from "../interface/IUserRepository";
 import { IJwtService } from "../interface/IJwtService";
 import { IOtpRepository } from "../interface/IOtpRepository";
 import { IOtpService } from "../interface/IOtpService";
-import { UserBlockedError } from "../../../core/errors/AppError";
+import {
+  AccountNotVerifiedError,
+  InvalidCredentialsError,
+  UserBlockedError,
+} from "../../../core/errors/AppError";
 
 export class LoginUseCase {
   constructor(
@@ -21,7 +25,7 @@ export class LoginUseCase {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new Error("User does not exist. Please create an account.");
+      throw new InvalidCredentialsError();
     }
 
     if (user.getIsBlocked()) {
@@ -34,7 +38,7 @@ export class LoginUseCase {
 
     const hashedPassword = await user.getPassword();
     if (!hashedPassword) {
-      throw new Error("Password not found.");
+      throw new InvalidCredentialsError();
     }
 
     const isMatch = await this.passwordService.compare(
@@ -43,7 +47,7 @@ export class LoginUseCase {
     );
 
     if (!isMatch) {
-      throw new Error("Password doesn't match.");
+      throw new InvalidCredentialsError();
     }
 
     // Enforce OTP verification: check if user isVerified is true
@@ -55,12 +59,7 @@ export class LoginUseCase {
       await this.otpRepository.saveOtp(email, hashedOtp, expiresAt);
       await this.otpService.sendOtp(email, otp);
 
-      const err: any = new Error(
-        "Account is not verified. An OTP code has been sent to your email.",
-      );
-      err.requireOtp = true;
-      err.email = email;
-      throw err;
+      throw new AccountNotVerifiedError(email);
     }
 
     const accessToken = this.jwtService.generateAccessToken(user.getId());

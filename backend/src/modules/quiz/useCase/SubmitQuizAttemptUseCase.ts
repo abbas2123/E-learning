@@ -1,8 +1,19 @@
 import type { IQuizRepository } from "../interface/IQuizRepository";
 import type { IQuestionRepository } from "../interface/IQuestionRepository";
-import type { IQuizAttemptRepository, QuizAttemptDto, AnswerDto } from "../interface/IQuizAttemptRepository";
+import type {
+  IQuizAttemptRepository,
+  QuizAttemptDto,
+  AnswerDto,
+} from "../interface/IQuizAttemptRepository";
 import type { ILessonRepository } from "../../curriculum/interface/ILessonRepository";
 import type { MarkLessonCompleteUseCase } from "../../progress/useCase/MarkLessonCompleteUseCase";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface SubmitQuizAttemptInput {
   attemptId: string;
@@ -24,33 +35,54 @@ export class SubmitQuizAttemptUseCase {
     private readonly lessonRepository?: ILessonRepository,
   ) {}
 
-  async execute(input: SubmitQuizAttemptInput): Promise<SubmitQuizAttemptResult> {
+  async execute(
+    input: SubmitQuizAttemptInput,
+  ): Promise<SubmitQuizAttemptResult> {
     const { attemptId, answers, userId } = input;
 
-    if (!attemptId) throw new Error("Attempt ID is required.");
-    if (!userId) throw new Error("User ID is required.");
+    if (!attemptId) throw new ValidationError("Attempt ID is required.");
+    if (!userId) throw new UnauthorizedError();
 
     const attempt = await this.attemptRepository.findById(attemptId);
-    if (!attempt) throw new Error("Quiz attempt not found.");
+    if (!attempt)
+      throw new NotFoundError(
+        "Quiz attempt not found.",
+        "QUIZ_ATTEMPT_NOT_FOUND",
+      );
 
     if (attempt.studentId !== userId) {
-      throw new Error("Unauthorized: this attempt belongs to another user.");
+      throw new ForbiddenError(
+        "You are not allowed to submit this quiz attempt.",
+      );
     }
 
     if (attempt.status !== "in_progress") {
-      throw new Error("This attempt has already been submitted.");
+      throw new ConflictError(
+        "This attempt has already been submitted.",
+        "QUIZ_ALREADY_SUBMITTED",
+      );
     }
 
     const quiz = await this.quizRepository.findById(attempt.quizId);
-    if (!quiz) throw new Error("Parent quiz not found.");
+    if (!quiz)
+      throw new NotFoundError("Parent quiz not found.", "QUIZ_NOT_FOUND");
 
     // Check time limit with a 15-second grace period for network latency
     const now = new Date();
-    const timeSpentSeconds = Math.max(0, Math.floor((now.getTime() - new Date(attempt.startedAt).getTime()) / 1000));
-    const isExpired = quiz.timeLimitSeconds > 0 && timeSpentSeconds > (quiz.timeLimitSeconds + 15);
+    const timeSpentSeconds = Math.max(
+      0,
+      Math.floor(
+        (now.getTime() - new Date(attempt.startedAt).getTime()) / 1000,
+      ),
+    );
+    const isExpired =
+      quiz.timeLimitSeconds > 0 &&
+      timeSpentSeconds > quiz.timeLimitSeconds + 15;
 
     // Fetch questions WITH correct answer IDs for grading
-    const questions = await this.questionRepository.findByQuizIdWithAnswers(quiz.id);
+    const questions = await this.questionRepository.findByQuizIdWithAnswers(
+      quiz.id,
+    );
     const questionMap = new Map(questions.map((q) => [q.id, q]));
 
     let score = 0;
@@ -96,7 +128,8 @@ export class SubmitQuizAttemptUseCase {
       }
     }
 
-    const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+    const percentage =
+      totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
     const passed = percentage >= quiz.passingScore;
     const status = isExpired ? "expired" : "submitted";
 
@@ -134,7 +167,10 @@ export class SubmitQuizAttemptUseCase {
           lessonMarkedComplete = true;
         }
       } catch (err) {
-        console.error("Failed to auto-mark lesson complete after quiz submission:", err);
+        console.error(
+          "Failed to auto-mark lesson complete after quiz submission:",
+          err,
+        );
       }
     }
 

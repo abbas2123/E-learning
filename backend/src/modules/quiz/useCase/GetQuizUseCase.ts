@@ -1,6 +1,10 @@
 import type { IQuizRepository, QuizDto } from "../interface/IQuizRepository";
-import type { IQuestionRepository, QuestionDto } from "../interface/IQuestionRepository";
+import type {
+  IQuestionRepository,
+  QuestionDto,
+} from "../interface/IQuestionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export interface GetQuizInput {
   quizId: string;
@@ -24,10 +28,10 @@ export class GetQuizUseCase {
   async execute(input: GetQuizInput): Promise<QuizWithQuestionsResponse> {
     const { quizId, userId, userRole } = input;
 
-    if (!quizId) throw new Error("Quiz ID is required.");
+    if (!quizId) throw new ValidationError("Quiz ID is required.");
 
     const quiz = await this.quizRepository.findById(quizId);
-    if (!quiz) throw new Error("Quiz not found.");
+    if (!quiz) throw new NotFoundError("Quiz not found.", "QUIZ_NOT_FOUND");
 
     const isOwnerOrAdmin =
       userRole === "admin" || (userId && quiz.createdBy === userId);

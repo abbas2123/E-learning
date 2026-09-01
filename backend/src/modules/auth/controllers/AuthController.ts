@@ -70,6 +70,7 @@ export class AuthControler {
       if (error.requireOtp) {
         return res.status(403).json({
           success: false,
+          code: error.code || "ACCOUNT_NOT_VERIFIED",
           requireOtp: true,
           email: error.email,
           message: error.message,

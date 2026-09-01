@@ -1,6 +1,11 @@
 import type { IUserRepository } from "../interface/IUserRepository";
 import type { IJwtService } from "../interface/IJwtService";
-import { UserBlockedError } from "../../../core/errors/AppError";
+import {
+  AccountNotVerifiedError,
+  InvalidRefreshTokenError,
+  NotFoundError,
+  UserBlockedError,
+} from "../../../core/errors/AppError";
 
 export class RefreshTokenUseCase {
   constructor(
@@ -9,12 +14,17 @@ export class RefreshTokenUseCase {
   ) {}
 
   async execute(refreshToken: string) {
-    const decoded = this.jwtService.verifyRefreshToken(refreshToken);
+    let decoded: { userId: string };
+    try {
+      decoded = this.jwtService.verifyRefreshToken(refreshToken);
+    } catch {
+      throw new InvalidRefreshTokenError();
+    }
 
     const user = await this.userRepository.findById(decoded.userId);
 
     if (!user) {
-      throw new Error("User not found.");
+      throw new NotFoundError("User not found.", "USER_NOT_FOUND");
     }
 
     if (user.getIsBlocked()) {
@@ -22,7 +32,7 @@ export class RefreshTokenUseCase {
     }
 
     if (!user.isEmailVerified()) {
-      throw new Error("User account is not verified.");
+      throw new AccountNotVerifiedError();
     }
 
     const accessToken = this.jwtService.generateAccessToken(user.getId());

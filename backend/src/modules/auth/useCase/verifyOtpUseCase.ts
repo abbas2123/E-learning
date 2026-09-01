@@ -5,7 +5,12 @@ import { IEmailService } from "../interface/IEmailService";
 import { VerifyOtpDto } from "../dtos/VerifyOtpDto";
 import { IPasswordService } from "../interface/IPasswordService";
 import crypto from "crypto";
-import { UserBlockedError } from "../../../core/errors/AppError";
+import {
+  AccountNotVerifiedError,
+  OtpExpiredError,
+  OtpInvalidError,
+  UserBlockedError,
+} from "../../../core/errors/AppError";
 export class VerifyOtpUseCase {
   constructor(
     private userRepository: IUserRepository,
@@ -20,7 +25,7 @@ export class VerifyOtpUseCase {
 
     const otpRecord = await this.otpRepository.findOtp(email);
     if (!otpRecord) {
-      throw new Error("Invalid or expired OTP code.");
+      throw new OtpInvalidError("Invalid or expired OTP code.");
     }
 
     // if (otpRecord.otp !== otp) {
@@ -28,15 +33,15 @@ export class VerifyOtpUseCase {
     // }
     if (new Date() > otpRecord.expiresAt) {
       await this.otpRepository.deleteOtp(email);
-      throw new Error("OTP code has expired. Please request a new code.");
+      throw new OtpExpiredError();
     }
     const isValid = await this.passwordService.compare(otp, otpRecord.otp);
     if (!isValid) {
-      throw new Error("Incorrect OTP code. Please try again.");
+      throw new OtpInvalidError();
     }
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      throw new Error("User does not exist.");
+      throw new OtpInvalidError("Unable to verify this OTP request.");
     }
     if (user.getIsBlocked()) {
       throw new UserBlockedError();

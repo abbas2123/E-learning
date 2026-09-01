@@ -1,9 +1,17 @@
-import type { ISectionRepository, SectionDto, LessonDto } from "../interface/ISectionRepository";
+import type {
+  ISectionRepository,
+  SectionDto,
+  LessonDto,
+} from "../interface/ISectionRepository";
 import type { ILessonRepository } from "../interface/ILessonRepository";
 import type { ICourseRepository } from "../../course/interface/ICourseRepository";
 import type { IEnrollmentRepository } from "../../admin/interface/IEnrollmentRepository";
-import type { IQuizRepository, QuizDto } from "../../quiz/interface/IQuizRepository";
+import type {
+  IQuizRepository,
+  QuizDto,
+} from "../../quiz/interface/IQuizRepository";
 import type { IQuestionRepository } from "../../quiz/interface/IQuestionRepository";
+import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export interface CourseCurriculumResult {
   courseId: string;
@@ -21,27 +29,37 @@ export class GetCourseCurriculumUseCase {
     private readonly questionRepository: IQuestionRepository,
   ) {}
 
-  async execute(courseId: string, userId?: string, userRole?: string): Promise<CourseCurriculumResult> {
-    if (!courseId) throw new Error("Course ID is required.");
+  async execute(
+    courseId: string,
+    userId?: string,
+    userRole?: string,
+  ): Promise<CourseCurriculumResult> {
+    if (!courseId) throw new ValidationError("Course ID is required.");
 
     // Validate via repository — no direct model access
     const course = await this.courseRepository.findSummaryById(courseId);
-    if (!course) throw new Error("Course not found.");
+    if (!course)
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     let isFullAccess = false;
     if (userRole === "admin" || (userId && course.createdBy === userId)) {
       isFullAccess = true;
     } else if (userId) {
-      isFullAccess = await this.enrollmentRepository.isStudentEnrolled(userId, courseId);
+      isFullAccess = await this.enrollmentRepository.isStudentEnrolled(
+        userId,
+        courseId,
+      );
     }
 
     const sections = await this.sectionRepository.findByCourseId(courseId);
     const allLessons = await this.lessonRepository.findByCourseId(courseId);
 
     // Fetch all quizzes via repository then batch-fetch question counts
-    const courseQuizzes: QuizDto[] = await this.quizRepository.findByCourseId(courseId);
+    const courseQuizzes: QuizDto[] =
+      await this.quizRepository.findByCourseId(courseId);
     const quizIds = courseQuizzes.map((q) => q.id);
-    const questionCountByQuiz = await this.questionRepository.getQuestionCountsByQuizIds(quizIds);
+    const questionCountByQuiz =
+      await this.questionRepository.getQuestionCountsByQuizIds(quizIds);
 
     // Group lessons by sectionId and protect private video assets if not enrolled
     const lessonsBySection = new Map<string, LessonDto[]>();
@@ -72,8 +90,9 @@ export class GetCourseCurriculumUseCase {
         ...lesson,
         quizId: resolvedQuizId,
         questionCount: resolvedQuestionCount,
-        videoUrl: isFullAccess || lesson.isPreview ? lesson.videoUrl : undefined,
-        resources: isFullAccess ? (lesson.resources || []) : [],
+        videoUrl:
+          isFullAccess || lesson.isPreview ? lesson.videoUrl : undefined,
+        resources: isFullAccess ? lesson.resources || [] : [],
       };
 
       const list = lessonsBySection.get(lesson.sectionId) || [];
@@ -92,14 +111,17 @@ export class GetCourseCurriculumUseCase {
 
     // If there are standalone quizzes created that were not linked to a section lesson,
     // attach them into an Assessment section so they are never lost to learners/instructors
-    const unlinkedQuizzes = courseQuizzes.filter((q) => !representedQuizIds.has(q.id));
+    const unlinkedQuizzes = courseQuizzes.filter(
+      (q) => !representedQuizIds.has(q.id),
+    );
     if (unlinkedQuizzes.length > 0) {
       const assessmentLessons: LessonDto[] = unlinkedQuizzes.map((q, idx) => ({
         id: q.id,
         sectionId: "sec-assessments",
         courseId,
         title: q.title,
-        description: q.description || q.instructions || "Knowledge Assessment & Quiz",
+        description:
+          q.description || q.instructions || "Knowledge Assessment & Quiz",
         type: "quiz" as const,
         quizId: q.id,
         questionCount: questionCountByQuiz.get(q.id) || 0,

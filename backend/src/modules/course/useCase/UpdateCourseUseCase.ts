@@ -1,5 +1,10 @@
 import type { ICourseRepository } from "../interface/ICourseRepository";
 import { Course } from "../entity/Course";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 interface UpdateCourseInput {
   id: string;
@@ -25,20 +30,25 @@ export class UpdateCourseUseCase {
     const existingCourse = await this.courseRepository.findById(input.id);
 
     if (!existingCourse) {
-      throw new Error("Course not found.");
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
     }
 
     const courseWithSlug = await this.courseRepository.findBySlug(input.slug);
 
     if (courseWithSlug && courseWithSlug.id !== input.id) {
-      throw new Error("A course with this slug already exists.");
+      throw new ConflictError(
+        "A course with this slug already exists.",
+        "RESOURCE_CONFLICT",
+      );
     }
 
     if (
       input.discountPrice !== undefined &&
       input.discountPrice >= input.price
     ) {
-      throw new Error("Discount price must be lower than the original price.");
+      throw new ValidationError(
+        "Discount price must be lower than the original price.",
+      );
     }
 
     const updatedCourse = Course.reconstruct({

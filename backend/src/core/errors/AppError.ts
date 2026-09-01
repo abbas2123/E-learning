@@ -33,6 +33,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class InvalidRefreshTokenError extends AppError {
+  constructor(message = "Invalid or expired refresh token.") {
+    super(message, 401, "INVALID_REFRESH_TOKEN");
+  }
+}
+
 export class InvalidCredentialsError extends AppError {
   constructor(message = "Invalid email or password.") {
     super(message, 401, "INVALID_CREDENTIALS");
@@ -51,15 +57,53 @@ export class UserBlockedError extends AppError {
   }
 }
 
+export class AccountNotVerifiedError extends AppError {
+  public readonly requireOtp = true;
+  public readonly email?: string;
+
+  constructor(email?: string) {
+    super(
+      "Account not verified. An OTP code has been sent to your email.",
+      403,
+      "ACCOUNT_NOT_VERIFIED",
+    );
+    this.email = email;
+  }
+}
+
 export class NotFoundError extends AppError {
-  constructor(message = "Resource not found") {
-    super(message, 404, "NOT_FOUND");
+  constructor(message = "Resource not found", code = "NOT_FOUND") {
+    super(message, 404, code);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message = "Resource state conflict") {
-    super(message, 409, "CONFLICT");
+  constructor(message = "Resource state conflict", code = "CONFLICT") {
+    super(message, 409, code);
+  }
+}
+
+export class OtpInvalidError extends AppError {
+  constructor(message = "Incorrect OTP code. Please try again.") {
+    super(message, 400, "OTP_INVALID");
+  }
+}
+
+export class OtpExpiredError extends AppError {
+  constructor(message = "OTP code has expired. Please request a new code.") {
+    super(message, 400, "OTP_EXPIRED");
+  }
+}
+
+export class VideoWatchTimeInsufficientError extends AppError {
+  constructor(message: string) {
+    super(message, 422, "VIDEO_WATCH_TIME_INSUFFICIENT");
+  }
+}
+
+export class EnrollmentRequiredError extends AppError {
+  constructor(message = "Active enrollment is required for this action.") {
+    super(message, 403, "ENROLLMENT_REQUIRED");
   }
 }
 

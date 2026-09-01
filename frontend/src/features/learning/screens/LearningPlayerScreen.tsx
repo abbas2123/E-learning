@@ -271,10 +271,19 @@ export default function LearningPlayerScreen() {
 
   const handleVideoEnded = () => {
     if (courseId && activeLesson && isLoggedIn && isEnrolled) {
-      progressService.markLessonComplete(courseId, activeLesson.id).then(() => {
-        toast.success("Lesson finished! 🎉");
-        refreshProgress();
-      });
+      progressService
+        .markLessonComplete(courseId, activeLesson.id)
+        .then(() => {
+          toast.success("Lesson finished! 🎉");
+          refreshProgress();
+        })
+        .catch((err: any) => {
+          if (err?.code === "VIDEO_WATCH_TIME_INSUFFICIENT") {
+            toast.error(err.message);
+            return;
+          }
+          toast.error(err?.message || "Failed to complete the lesson.");
+        });
     }
   };
 

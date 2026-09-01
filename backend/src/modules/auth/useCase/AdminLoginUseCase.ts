@@ -2,8 +2,11 @@ import type { IUserRepository } from "../interface/IUserRepository";
 import type { IPasswordService } from "../interface/IPasswordService";
 import type { IJwtService } from "../interface/IJwtService";
 import { UserRole } from "../Repository/database/User";
-import { UserBlockedError } from "../../../core/errors/AppError";
-import { InvalidCredentialsError } from "../../../core/errors/AppError";
+import {
+  AccountNotVerifiedError,
+  InvalidCredentialsError,
+  UserBlockedError,
+} from "../../../core/errors/AppError";
 
 interface AdminLoginInput {
   email: string;
@@ -35,15 +38,7 @@ export class AdminLoginUseCase {
     }
 
     if (!user.isEmailVerified()) {
-      const error = new Error(
-        "Account not verified. Please verify your email.",
-      );
-
-      // So your controller can return requireOtp
-      (error as any).requireOtp = true;
-      (error as any).email = user.getEmail();
-
-      throw error;
+      throw new AccountNotVerifiedError(user.getEmail());
     }
 
     const password = user.getPassword();
