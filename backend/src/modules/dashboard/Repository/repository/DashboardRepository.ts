@@ -200,22 +200,26 @@ export class DashboardRepository implements IDashboardRepository {
     }));
   }
 
-  async enrollCourse(userId: string, courseId: string): Promise<void> {
+  async enrollCourse(userId: string, courseId: string): Promise<{
+    userFound: boolean;
+    courseFound: boolean;
+    alreadyEnrolled: boolean;
+  }> {
     const user = await UserModel.findOne({
       $or: [{ id: userId }, { email: userId }],
     });
 
-    if (!user) throw new Error("User not found.");
+    if (!user) return { userFound: false, courseFound: true, alreadyEnrolled: false };
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new Error("Course not found.");
+    if (!course) return { userFound: true, courseFound: false, alreadyEnrolled: false };
 
     // Idempotent — skip if already enrolled
     const existing = await EnrollmentModel.findOne({
       studentId: user.id || userId,
       courseId,
     });
-    if (existing) return;
+    if (existing) return { userFound: true, courseFound: true, alreadyEnrolled: true };
 
     const enrollment = new EnrollmentModel({
       id: randomUUID(),
@@ -230,5 +234,6 @@ export class DashboardRepository implements IDashboardRepository {
     });
 
     await enrollment.save();
+    return { userFound: true, courseFound: true, alreadyEnrolled: false };
   }
 }

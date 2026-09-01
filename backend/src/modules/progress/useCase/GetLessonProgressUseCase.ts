@@ -5,6 +5,12 @@ import type {
 import { CourseModel } from "../../course/repository/database/Course";
 import { LessonModel } from "../../curriculum/database/Lesson";
 import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
+import {
+  EnrollmentRequiredError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface GetLessonProgressInput {
   userId: string;
@@ -21,12 +27,12 @@ export class GetLessonProgressUseCase {
   async execute(input: GetLessonProgressInput): Promise<LessonProgressDto> {
     const { userId, courseId, lessonId, userRole } = input;
 
-    if (!userId) throw new Error("Authentication required.");
-    if (!courseId) throw new Error("Course ID is required.");
-    if (!lessonId) throw new Error("Lesson ID is required.");
+    if (!userId) throw new UnauthorizedError();
+    if (!courseId) throw new ValidationError("Course ID is required.");
+    if (!lessonId) throw new ValidationError("Lesson ID is required.");
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new Error("Course not found.");
+    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     const lesson = await LessonModel.findOne({ id: lessonId });
     if (!lesson) {
@@ -34,21 +40,10 @@ export class GetLessonProgressUseCase {
       const { QuizModel } = await import("../../quiz/database/Quiz.js");
       const quiz = await QuizModel.findOne({ id: lessonId, courseId });
       if (!quiz) {
-        // Return default progress rather than crashing
-        return {
-          id: "",
-          studentId: userId,
-          courseId,
-          lessonId,
-          completed: false,
-          watchedSeconds: 0,
-          completedAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
+        throw new NotFoundError("Lesson not found.", "LESSON_NOT_FOUND");
       }
     } else if (lesson.courseId !== courseId) {
-      throw new Error(`Lesson ${lessonId} does not belong to course ${courseId}.`);
+      throw new ValidationError("Lesson does not belong to this course.");
     }
 
     if (userRole !== "admin" && course.createdBy !== userId) {
@@ -58,7 +53,7 @@ export class GetLessonProgressUseCase {
         status: "completed",
       });
       if (!enrollment) {
-        throw new Error("Access denied. Active enrollment required to view progress.");
+        throw new EnrollmentRequiredError("Active enrollment is required to view progress.");
       }
     }
 

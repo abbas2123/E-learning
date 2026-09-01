@@ -5,6 +5,12 @@ import type {
 import { CourseModel } from "../../course/repository/database/Course";
 import { LessonModel } from "../../curriculum/database/Lesson";
 import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
+import {
+  EnrollmentRequiredError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface GetCourseProgressInput {
   userId: string;
@@ -20,11 +26,11 @@ export class GetCourseProgressUseCase {
   async execute(input: GetCourseProgressInput): Promise<CourseProgressSummaryDto> {
     const { userId, courseId, userRole } = input;
 
-    if (!userId) throw new Error("Authentication required.");
-    if (!courseId) throw new Error("Course ID is required.");
+    if (!userId) throw new UnauthorizedError();
+    if (!courseId) throw new ValidationError("Course ID is required.");
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new Error("Course not found.");
+    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     if (userRole !== "admin" && course.createdBy !== userId) {
       const enrollment = await EnrollmentModel.findOne({
@@ -33,7 +39,7 @@ export class GetCourseProgressUseCase {
         status: "completed",
       });
       if (!enrollment) {
-        throw new Error("Access denied. Active enrollment required to view course progress.");
+        throw new EnrollmentRequiredError("Active enrollment is required to view course progress.");
       }
     }
 

@@ -16,6 +16,7 @@ import {
 import { User } from "../modules/auth/userEnitity/User.js";
 import { LoginUseCase } from "../modules/auth/useCase/loginUseCase.js";
 import { RefreshTokenUseCase } from "../modules/auth/useCase/refreshTokenUseCase.js";
+import { EnrollCourseUseCase } from "../modules/dashboard/useCase/EnrollCourseUseCase.js";
 
 // ─── Mock Repositories ────────────────────────────────────────────────────────
 
@@ -279,6 +280,148 @@ test("MarkLessonCompleteUseCase: reports insufficient video watch time as a type
       error.code === "VIDEO_WATCH_TIME_INSUFFICIENT" &&
       error.message.includes("0s watched of 600s") &&
       error.message.includes("540s"),
+  );
+});
+
+test("Progress use cases classify authentication, resources, access, relationships, and valid completion", async () => {
+  const courseRepo = (course: any = { id: "c_1", createdBy: "owner_1" }) => ({
+    ...createMockCourseRepo(),
+    findSummaryById: async () => course,
+  });
+  const lessonRepo = (lesson: any = { id: "les_1", courseId: "c_1", duration: 10, type: "video" }) => ({
+    ...createMockLessonRepo(),
+    findById: async () => lesson,
+    findByQuizOrLessonId: async () => null,
+  });
+
+  const mark = (course: any, lesson: any, enrolled = true) =>
+    new MarkLessonCompleteUseCase(
+      createMockProgressRepo(),
+      courseRepo(course),
+      lessonRepo(lesson),
+      createMockEnrollmentRepo(enrolled),
+    );
+
+  await assert.rejects(
+    () => mark(null, null).execute({ userId: "", courseId: "c_1", lessonId: "les_1" }),
+    (error: any) => error.statusCode === 401 && error.code === "UNAUTHORIZED",
+  );
+  await assert.rejects(
+    () => mark(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => mark({ id: "c_1", createdBy: "owner_1" }, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "missing" }),
+    (error: any) => error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => mark(undefined, undefined, false).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    (error: any) => error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
+  );
+  await assert.rejects(
+    () => mark({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "other", duration: 10, type: "video" }).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+
+  const completed = await mark(undefined, undefined).execute({
+    userId: "u_1",
+    courseId: "c_1",
+    lessonId: "les_1",
+    watchedSeconds: 540,
+  });
+  assert.equal(completed.completed, true);
+});
+
+test("UpdateLessonWatchProgressUseCase: classifies invalid input, missing resources, access, and relationships", async () => {
+  const makeUseCase = (course: any, lesson: any, enrolled = true) =>
+    new UpdateLessonWatchProgressUseCase(
+      createMockProgressRepo(),
+      { ...createMockCourseRepo(), findSummaryById: async () => course },
+      { ...createMockLessonRepo(), findById: async () => lesson },
+      createMockEnrollmentRepo(enrolled),
+    );
+
+  await assert.rejects(
+    () => makeUseCase(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: Number.NaN }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+  await assert.rejects(
+    () => makeUseCase(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
+    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
+    (error: any) => error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "other", duration: 10 }, true).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+  await assert.rejects(
+    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "c_1", duration: 10 }, false).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
+    (error: any) => error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
+  );
+});
+
+test("EnrollCourseUseCase: classifies input, resources, duplicate enrollment, and success", async () => {
+  const useCase = (result: any) =>
+    new EnrollCourseUseCase({
+      getSummaryByUserId: async () => ({} as any),
+      getActiveCoursesByUserId: async () => [],
+      getCoursesCatalog: async () => [],
+      enrollCourse: async () => result,
+    });
+
+  await assert.rejects(
+    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("", "c_1"),
+    (error: any) => error.statusCode === 401 && error.code === "UNAUTHORIZED",
+  );
+  await assert.rejects(
+    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("u_1", ""),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+  await assert.rejects(
+    () => useCase({ userFound: false, courseFound: true, alreadyEnrolled: false }).execute("u_1", "c_1"),
+    (error: any) => error.statusCode === 404 && error.code === "USER_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => useCase({ userFound: true, courseFound: false, alreadyEnrolled: false }).execute("u_1", "c_1"),
+    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: true }).execute("u_1", "c_1"),
+    (error: any) => error.statusCode === 409 && error.code === "ALREADY_ENROLLED",
+  );
+  await useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("u_1", "c_1");
+});
+
+test("Batch 1 use cases preserve unexpected repository failures", async () => {
+  const repositoryFailure = new Error("database connection failed");
+  const progressUseCase = new MarkLessonCompleteUseCase({
+    ...createMockProgressRepo(),
+    findByLesson: async () => {
+      throw repositoryFailure;
+    },
+  }, createMockCourseRepo(), createMockLessonRepo([{ id: "les_1", courseId: "c_1", duration: 10, type: "text" }]), createMockEnrollmentRepo(true));
+
+  await assert.rejects(
+    () => progressUseCase.execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    (error: unknown) => error === repositoryFailure,
+  );
+
+  const enrollmentFailure = new Error("database unavailable");
+  const enrollmentUseCase = new EnrollCourseUseCase({
+    getSummaryByUserId: async () => ({} as any),
+    getActiveCoursesByUserId: async () => [],
+    getCoursesCatalog: async () => [],
+    enrollCourse: async () => {
+      throw enrollmentFailure;
+    },
+  });
+
+  await assert.rejects(
+    () => enrollmentUseCase.execute("u_1", "c_1"),
+    (error: unknown) => error === enrollmentFailure,
   );
 });
 

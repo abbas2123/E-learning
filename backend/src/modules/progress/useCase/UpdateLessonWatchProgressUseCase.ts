@@ -6,6 +6,12 @@ import type { ICourseRepository } from "../../course/interface/ICourseRepository
 import type { ILessonRepository } from "../../curriculum/interface/ILessonRepository";
 import type { IEnrollmentRepository } from "../../admin/interface/IEnrollmentRepository";
 import { VIDEO_COMPLETION_THRESHOLD } from "../../../shared/constants/courseConstants";
+import {
+  EnrollmentRequiredError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface UpdateLessonWatchProgressInput {
   userId: string;
@@ -28,18 +34,18 @@ export class UpdateLessonWatchProgressUseCase {
   ): Promise<LessonProgressDto> {
     const { userId, courseId, lessonId, watchedSeconds, userRole } = input;
 
-    if (!userId) throw new Error("Authentication required.");
-    if (!courseId) throw new Error("Course ID is required.");
-    if (!lessonId) throw new Error("Lesson ID is required.");
-    if (typeof watchedSeconds !== "number" || watchedSeconds < 0) {
-      throw new Error("watchedSeconds must be a non-negative number.");
+    if (!userId) throw new UnauthorizedError();
+    if (!courseId) throw new ValidationError("Course ID is required.");
+    if (!lessonId) throw new ValidationError("Lesson ID is required.");
+    if (!Number.isFinite(watchedSeconds) || watchedSeconds < 0) {
+      throw new ValidationError("watchedSeconds must be a non-negative number.");
     }
 
     // Validate course via repository
     let courseCreatedBy: string | undefined;
     if (this.courseRepository) {
       const course = await this.courseRepository.findSummaryById(courseId);
-      if (!course) throw new Error("Course not found.");
+      if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
       courseCreatedBy = course.createdBy;
     }
 
@@ -47,9 +53,9 @@ export class UpdateLessonWatchProgressUseCase {
     let lessonDuration: number | undefined;
     if (this.lessonRepository) {
       const lesson = await this.lessonRepository.findById(lessonId);
-      if (!lesson) throw new Error("Lesson not found.");
+      if (!lesson) throw new NotFoundError("Lesson not found.", "LESSON_NOT_FOUND");
       if (lesson.courseId !== courseId) {
-        throw new Error(`Lesson ${lessonId} does not belong to course ${courseId}.`);
+        throw new ValidationError("Lesson does not belong to this course.");
       }
       lessonDuration = lesson.duration;
     }
@@ -59,7 +65,7 @@ export class UpdateLessonWatchProgressUseCase {
     if (!isAdminOrOwner && this.enrollmentRepository) {
       const enrolled = await this.enrollmentRepository.isStudentEnrolled(userId, courseId);
       if (!enrolled) {
-        throw new Error("Access denied. Active enrollment required to update lesson progress.");
+        throw new EnrollmentRequiredError("Active enrollment is required to update lesson progress.");
       }
     }
 
