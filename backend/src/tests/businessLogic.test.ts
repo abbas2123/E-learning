@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import mongoose from "mongoose";
+import { errorHandler } from "../middlewares/errorHandler.js";
+import { adminMiddleware } from "../middlewares/adminMiddleware.js";
+import { instructorMiddleware } from "../middlewares/instructorMiddleware.js";
 import {
   AppError,
   ValidationError,
@@ -12,6 +16,37 @@ import {
   UserBlockedError,
   InvalidCredentialsError,
 } from "../core/errors/AppError.js";
+
+function runErrorHandler(error: unknown, path = "/api/test") {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+
+  let statusCode = 0;
+  let responseBody: Record<string, unknown> | undefined;
+  const response = {
+    clearCookie: () => response,
+    status: (status: number) => {
+      statusCode = status;
+      return response;
+    },
+    json: (body: Record<string, unknown>) => {
+      responseBody = body;
+      return response;
+    },
+  } as any;
+
+  errorHandler(
+    error,
+    { path, requestId: "req_test" } as any,
+    response,
+    (() => {}) as any,
+  );
+
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
+
+  return { statusCode, responseBody };
+}
 
 // ─── 1. Error Hierarchy Tests ───────────────────────────────────────────────
 test("AppError Hierarchy and HTTP Status Codes", () => {
@@ -43,6 +78,99 @@ test("AppError Hierarchy and HTTP Status Codes", () => {
   const credentialsErr = new InvalidCredentialsError();
   assert.equal(credentialsErr.statusCode, 401);
   assert.equal(credentialsErr.code, "INVALID_CREDENTIALS");
+});
+
+test("Global error handler maps expected Mongoose and JWT errors safely", () => {
+  const duplicate = runErrorHandler({
+    code: 11000,
+    message: "secret collection details",
+  });
+  assert.equal(duplicate.statusCode, 409);
+  assert.deepEqual(duplicate.responseBody, {
+    success: false,
+    code: "RESOURCE_CONFLICT",
+    message: "A resource with the provided value already exists.",
+    requestId: "req_test",
+  });
+
+  const validation = runErrorHandler(new mongoose.Error.ValidationError());
+  assert.equal(validation.statusCode, 400);
+  assert.equal(validation.responseBody?.code, "VALIDATION_ERROR");
+  assert.equal(
+    validation.responseBody?.message,
+    "The request contains invalid data.",
+  );
+
+  const cast = runErrorHandler(
+    new mongoose.Error.CastError("ObjectId", "bad-id", "courseId"),
+  );
+  assert.equal(cast.statusCode, 400);
+  assert.equal(cast.responseBody?.code, "VALIDATION_ERROR");
+  assert.equal(
+    cast.responseBody?.message,
+    "The request contains an invalid resource identifier.",
+  );
+
+  const expiredAccess = runErrorHandler(
+    new jwt.TokenExpiredError("jwt expired", new Date()),
+  );
+  assert.equal(expiredAccess.statusCode, 401);
+  assert.equal(expiredAccess.responseBody?.code, "ACCESS_TOKEN_EXPIRED");
+  assert.equal(expiredAccess.responseBody?.message, "Access token expired.");
+
+  const invalidAccess = runErrorHandler(
+    new jwt.JsonWebTokenError("jwt malformed"),
+  );
+  assert.equal(invalidAccess.statusCode, 401);
+  assert.equal(invalidAccess.responseBody?.code, "INVALID_ACCESS_TOKEN");
+  assert.equal(invalidAccess.responseBody?.message, "Invalid access token.");
+
+  const invalidRefresh = runErrorHandler(
+    new jwt.JsonWebTokenError("jwt malformed"),
+    "/api/auth/refresh",
+  );
+  assert.equal(invalidRefresh.statusCode, 401);
+  assert.equal(invalidRefresh.responseBody?.code, "INVALID_REFRESH_TOKEN");
+
+  const unexpected = runErrorHandler(
+    new Error("database password and stack path"),
+  );
+  assert.equal(unexpected.statusCode, 500);
+  assert.equal(unexpected.responseBody?.code, "INTERNAL_SERVER_ERROR");
+  assert.equal(
+    unexpected.responseBody?.message,
+    "Internal Server Error. Please contact support if the problem persists.",
+  );
+  assert.equal(
+    String(unexpected.responseBody?.message).includes("password"),
+    false,
+  );
+});
+
+test("Role middleware forwards stable authorization errors to the global handler", () => {
+  let adminError: unknown;
+  adminMiddleware(
+    { userId: "student_1", userRole: "student" } as any,
+    {} as any,
+    (error?: unknown) => {
+      adminError = error;
+    },
+  );
+  const adminResponse = runErrorHandler(adminError);
+  assert.equal(adminResponse.statusCode, 403);
+  assert.equal(adminResponse.responseBody?.code, "FORBIDDEN");
+
+  let instructorError: unknown;
+  instructorMiddleware(
+    { userId: "student_1", userRole: "student" } as any,
+    {} as any,
+    (error?: unknown) => {
+      instructorError = error;
+    },
+  );
+  const instructorResponse = runErrorHandler(instructorError);
+  assert.equal(instructorResponse.statusCode, 403);
+  assert.equal(instructorResponse.responseBody?.code, "FORBIDDEN");
 });
 
 // ─── 2. Cryptographic Payment Verification ──────────────────────────────────

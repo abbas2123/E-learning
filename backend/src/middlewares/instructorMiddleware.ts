@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./authMiddleware";
+import { ForbiddenError, UnauthorizedError } from "../core/errors/AppError";
 
 export function instructorMiddleware(
   req: AuthenticatedRequest,
@@ -7,17 +8,11 @@ export function instructorMiddleware(
   next: NextFunction,
 ) {
   if (!req.userId) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication required.",
-    });
+    return next(new UnauthorizedError());
   }
 
   if (req.userRole !== "instructor" && req.userRole !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied. Instructor privileges required.",
-    });
+    return next(new ForbiddenError("Instructor privileges required."));
   }
 
   next();

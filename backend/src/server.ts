@@ -8,8 +8,8 @@ function validateProductionEnv() {
   if (!isProduction) return;
 
   const requiredVars = [
-    "JWT_SECRET",
-    "JWT_REFRESH_SECRET",
+    "ACCESS_TOKEN_SECRET",
+    "REFRESH_TOKEN_SECRET",
     "RAZORPAY_KEY_ID",
     "RAZORPAY_KEY_SECRET",
     "CLIENT_URL",
@@ -37,7 +37,9 @@ async function bootstrap() {
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
     if (!mongoUri) {
-      throw new Error("MONGODB_URI (or MONGO_URI) is not defined in environment variables or .env file.");
+      throw new Error(
+        "MONGODB_URI (or MONGO_URI) is not defined in environment variables or .env file.",
+      );
     }
 
     await mongoose.connect(mongoUri);
@@ -71,7 +73,9 @@ async function bootstrap() {
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
   } catch (err: any) {
-    Logger.error("❌ Failed to start TOTC server", { error: err?.message || err });
+    Logger.error("❌ Failed to start TOTC server", {
+      error: err?.message || err,
+    });
     process.exit(1);
   }
 }

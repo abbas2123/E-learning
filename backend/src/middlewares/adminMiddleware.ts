@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./authMiddleware";
+import { ForbiddenError, UnauthorizedError } from "../core/errors/AppError";
 
 export function adminMiddleware(
   req: AuthenticatedRequest,
@@ -7,17 +8,11 @@ export function adminMiddleware(
   next: NextFunction,
 ) {
   if (!req.userId) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication required.",
-    });
+    return next(new UnauthorizedError());
   }
 
   if (req.userRole !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied. Admin privileges required.",
-    });
+    return next(new ForbiddenError("Admin privileges required."));
   }
 
   next();
