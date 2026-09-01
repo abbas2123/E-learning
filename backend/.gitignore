@@ -27,4 +27,4 @@ build/
 .vscode/
 
 .idea/
-.evn.example
+.evn.example.env.example
