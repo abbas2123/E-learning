@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { profileController } from "../composition/profile.container";
-import { authMiddleware } from "../../../middlewares/authMiddleware";
+import { authMiddleware } from "../../auth/composition/auth.container";
 import { upload } from "../../../middlewares/uploadMiddleware";
 
 const router = Router();

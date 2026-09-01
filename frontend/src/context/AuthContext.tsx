@@ -96,67 +96,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken, isInitializing]);
 
-  const login = useCallback(async (credentials: LoginPayload): Promise<AuthResponse> => {
-    const response = await LoginUser(credentials);
-    if (response.user && response.accessToken) {
+  const login = useCallback(
+    async (credentials: LoginPayload): Promise<AuthResponse> => {
+      const response = await LoginUser(credentials);
+      if (response.user && response.accessToken) {
+        const formattedUser = formatBackendUser(response.user);
+        setUser(formattedUser);
+        setAccessToken(response.accessToken);
+        setIsLoggedIn(true);
+        window.dispatchEvent(new Event("totc:auth-restored"));
+      }
+      return response;
+    },
+    [],
+  );
+
+  const adminLogin = useCallback(
+    async (credentials: LoginPayload): Promise<AuthResponse> => {
+      const response = await adminLoginApi(credentials);
+
+      if (!response.user || !response.accessToken) {
+        throw new Error("Invalid admin login response from server.");
+      }
+
+      if (response.user.role !== "admin") {
+        throw new Error("You are not authorized as an administrator.");
+      }
+
       const formattedUser = formatBackendUser(response.user);
       setUser(formattedUser);
       setAccessToken(response.accessToken);
       setIsLoggedIn(true);
-    }
-    return response;
-  }, []);
+      window.dispatchEvent(new Event("totc:auth-restored"));
 
-  const adminLogin = useCallback(async (
-    credentials: LoginPayload,
-  ): Promise<AuthResponse> => {
-    const response = await adminLoginApi(credentials);
-
-    if (!response.user || !response.accessToken) {
-      throw new Error("Invalid admin login response from server.");
-    }
-
-    if (response.user.role !== "admin") {
-      throw new Error("You are not authorized as an administrator.");
-    }
-
-    const formattedUser = formatBackendUser(response.user);
-    setUser(formattedUser);
-    setAccessToken(response.accessToken);
-    setIsLoggedIn(true);
-
-    return response;
-  }, []);
-
-  const register = useCallback(async (payload: RegisterPayload): Promise<AuthResponse> => {
-    return await registerUser(payload);
-  }, []);
-
-  const verifyOtp = useCallback(async (
-    payload: VerifyOtpPayload,
-  ): Promise<VerifyOtpResponse> => {
-    const response = await verifyOtpApi(payload);
-
-    // Password reset flow
-    if (response.type === "PASSWORD_RESET") {
       return response;
-    }
+    },
+    [],
+  );
 
-    // Email verification flow
-    if (!response.user || !response.accessToken) {
-      throw new Error("Invalid verification response from server.");
-    }
+  const register = useCallback(
+    async (payload: RegisterPayload): Promise<AuthResponse> => {
+      return await registerUser(payload);
+    },
+    [],
+  );
 
-    const formattedUser = formatBackendUser(response.user);
-    setUser(formattedUser);
-    setAccessToken(response.accessToken);
-    setIsLoggedIn(true);
+  const verifyOtp = useCallback(
+    async (payload: VerifyOtpPayload): Promise<VerifyOtpResponse> => {
+      const response = await verifyOtpApi(payload);
 
-    return {
-      ...response,
-      user: formattedUser,
-    };
-  }, []);
+      // Password reset flow
+      if (response.type === "PASSWORD_RESET") {
+        return response;
+      }
+
+      // Email verification flow
+      if (!response.user || !response.accessToken) {
+        throw new Error("Invalid verification response from server.");
+      }
+
+      const formattedUser = formatBackendUser(response.user);
+      setUser(formattedUser);
+      setAccessToken(response.accessToken);
+      setIsLoggedIn(true);
+      window.dispatchEvent(new Event("totc:auth-restored"));
+
+      return {
+        ...response,
+        user: formattedUser,
+      };
+    },
+    [],
+  );
 
   const resendOtp = useCallback(async (email: string): Promise<void> => {
     await resendOtpApi(email);
@@ -173,6 +184,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoggedIn(false);
   }, []);
 
+  useEffect(() => {
+    const handleBlockedAccount = () => logout();
+    window.addEventListener("totc:auth-blocked", handleBlockedAccount);
+    return () =>
+      window.removeEventListener("totc:auth-blocked", handleBlockedAccount);
+  }, [logout]);
+
   // Memoize context value to prevent unnecessary re-renders in all consumers
   const value = useMemo<AuthContextType>(
     () => ({
@@ -188,14 +206,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resendOtp,
       logout,
     }),
-    [isLoggedIn, isInitializing, user, accessToken, login, adminLogin, register, verifyOtp, resendOtp, logout],
+    [
+      isLoggedIn,
+      isInitializing,
+      user,
+      accessToken,
+      login,
+      adminLogin,
+      register,
+      verifyOtp,
+      resendOtp,
+      logout,
+    ],
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -92,6 +92,13 @@ export default function Login() {
       navigate(from, { replace: true });
     } catch (err: any) {
       if (
+        err?.code === "USER_BLOCKED" ||
+        err?.response?.data?.code === "USER_BLOCKED"
+      ) {
+        return;
+      }
+
+      if (
         err?.requireOtp ||
         err?.response?.data?.requireOtp ||
         (typeof err?.message === "string" &&
@@ -104,7 +111,9 @@ export default function Login() {
             "Please enter the OTP verification code sent to your email.",
         });
         navigate("/verify-otp", {
-          state: { email: err?.email || err?.response?.data?.email || email.trim() },
+          state: {
+            email: err?.email || err?.response?.data?.email || email.trim(),
+          },
           replace: true,
         });
         return;

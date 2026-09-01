@@ -3,7 +3,15 @@ import assert from "node:assert/strict";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { AppError, ValidationError, ForbiddenError, UnauthorizedError, NotFoundError } from "../core/errors/AppError.js";
+import {
+  AppError,
+  ValidationError,
+  ForbiddenError,
+  UnauthorizedError,
+  NotFoundError,
+  UserBlockedError,
+  InvalidCredentialsError,
+} from "../core/errors/AppError.js";
 
 // ─── 1. Error Hierarchy Tests ───────────────────────────────────────────────
 test("AppError Hierarchy and HTTP Status Codes", () => {
@@ -23,6 +31,18 @@ test("AppError Hierarchy and HTTP Status Codes", () => {
   const notFoundErr = new NotFoundError("Course not found");
   assert.equal(notFoundErr.statusCode, 404);
   assert.equal(notFoundErr.code, "NOT_FOUND");
+
+  const blockedErr = new UserBlockedError();
+  assert.equal(blockedErr.statusCode, 403);
+  assert.equal(blockedErr.code, "USER_BLOCKED");
+  assert.equal(
+    blockedErr.message,
+    "Your account has been blocked by the administrator.",
+  );
+
+  const credentialsErr = new InvalidCredentialsError();
+  assert.equal(credentialsErr.statusCode, 401);
+  assert.equal(credentialsErr.code, "INVALID_CREDENTIALS");
 });
 
 // ─── 2. Cryptographic Payment Verification ──────────────────────────────────
@@ -36,21 +56,42 @@ test("Razorpay Payment Client HMAC SHA256 Verification", () => {
     .update(`${orderId}|${paymentId}`)
     .digest("hex");
 
-  const verifySignature = (oId: string, pId: string, sig: string, key: string) => {
-    const expected = crypto.createHmac("sha256", key).update(`${oId}|${pId}`).digest("hex");
+  const verifySignature = (
+    oId: string,
+    pId: string,
+    sig: string,
+    key: string,
+  ) => {
+    const expected = crypto
+      .createHmac("sha256", key)
+      .update(`${oId}|${pId}`)
+      .digest("hex");
     return expected === sig;
   };
 
-  assert.equal(verifySignature(orderId, paymentId, validSignature, secret), true);
-  assert.equal(verifySignature(orderId, paymentId, "tampered_sig", secret), false);
-  assert.equal(verifySignature("different_order", paymentId, validSignature, secret), false);
+  assert.equal(
+    verifySignature(orderId, paymentId, validSignature, secret),
+    true,
+  );
+  assert.equal(
+    verifySignature(orderId, paymentId, "tampered_sig", secret),
+    false,
+  );
+  assert.equal(
+    verifySignature("different_order", paymentId, validSignature, secret),
+    false,
+  );
 });
 
 test("Razorpay Webhook Payload Signature Verification", () => {
   const secret = "webhook_secret_xyz";
   const payloadStr = JSON.stringify({
     event: "payment.captured",
-    payload: { payment: { entity: { id: "pay_abc", order_id: "order_xyz", amount: 4900 } } },
+    payload: {
+      payment: {
+        entity: { id: "pay_abc", order_id: "order_xyz", amount: 4900 },
+      },
+    },
   });
 
   const validWebhookSig = crypto
@@ -76,9 +117,24 @@ test("Razorpay Webhook Payload Signature Verification", () => {
 // ─── 3. Quiz Auto-Grading & Scoring Engine ──────────────────────────────────
 test("Quiz Auto-Grading Engine: Single & Multi-Choice Rules", () => {
   const questions = [
-    { id: "q1", points: 2, questionType: "single_choice", correctOptionIds: ["opt1"] },
-    { id: "q2", points: 3, questionType: "multiple_choice", correctOptionIds: ["optA", "optB"] },
-    { id: "q3", points: 5, questionType: "multiple_choice", correctOptionIds: ["optX", "optY", "optZ"] },
+    {
+      id: "q1",
+      points: 2,
+      questionType: "single_choice",
+      correctOptionIds: ["opt1"],
+    },
+    {
+      id: "q2",
+      points: 3,
+      questionType: "multiple_choice",
+      correctOptionIds: ["optA", "optB"],
+    },
+    {
+      id: "q3",
+      points: 5,
+      questionType: "multiple_choice",
+      correctOptionIds: ["optX", "optY", "optZ"],
+    },
   ];
 
   const studentSubmission = [
@@ -171,7 +227,12 @@ test("JWT Access & Refresh Token Claims Verification", () => {
 test("Server-Side Price Calculation for Multi-Course Cart", () => {
   const catalog = [
     { id: "c1", title: "React Masterclass", price: 1499, status: "published" },
-    { id: "c2", title: "Node.js Microservices", price: 1999, status: "published" },
+    {
+      id: "c2",
+      title: "Node.js Microservices",
+      price: 1999,
+      status: "published",
+    },
     { id: "c3", title: "Python AI", price: 2499, status: "published" },
   ];
 
@@ -192,7 +253,8 @@ test("Server-Side Price Calculation for Multi-Course Cart", () => {
 test("Role Access Control Matrix Guard", () => {
   type Role = "student" | "instructor" | "admin";
 
-  const canAccessInstructorStudio = (role: Role) => role === "instructor" || role === "admin";
+  const canAccessInstructorStudio = (role: Role) =>
+    role === "instructor" || role === "admin";
   const canAccessAdminDashboard = (role: Role) => role === "admin";
   const canAccessLearningPlayer = (isEnrolled: boolean) => isEnrolled;
 

@@ -2,6 +2,8 @@ import type { IUserRepository } from "../interface/IUserRepository";
 import type { IPasswordService } from "../interface/IPasswordService";
 import type { IJwtService } from "../interface/IJwtService";
 import { UserRole } from "../Repository/database/User";
+import { UserBlockedError } from "../../../core/errors/AppError";
+import { InvalidCredentialsError } from "../../../core/errors/AppError";
 
 interface AdminLoginInput {
   email: string;
@@ -19,7 +21,7 @@ export class AdminLoginUseCase {
     const user = await this.userRepository.findByEmail(input.email);
 
     if (!user) {
-      throw new Error("Invalid email or password.");
+      throw new InvalidCredentialsError();
     }
     if (user.getProvider() !== "local") {
       throw new Error("Admin account must use email and password.");
@@ -29,7 +31,7 @@ export class AdminLoginUseCase {
     }
 
     if (user.getIsBlocked()) {
-      throw new Error("Your account has been blocked.");
+      throw new UserBlockedError();
     }
 
     if (!user.isEmailVerified()) {
@@ -57,7 +59,7 @@ export class AdminLoginUseCase {
     );
 
     if (!isPasswordValid) {
-      throw new Error("Invalid email or password.");
+      throw new InvalidCredentialsError();
     }
 
     const accessToken = this.jwtService.generateAccessToken(user.getId());

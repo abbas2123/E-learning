@@ -16,6 +16,7 @@ import type { GetEnrollmentsUseCase } from "../useCase/GetEnrollmentsUseCase";
 import type { GetNotificationsUseCase } from "../useCase/GetNotificationsUseCase";
 import type { MarkNotificationsReadUseCase } from "../useCase/MarkNotificationsReadUseCase";
 import type { UpdateUserRoleUseCase } from "../useCase/UpdateUserRoleUseCase";
+import type { AuthenticatedRequest } from "../../../middlewares/authMiddleware";
 
 export class AdminController {
   constructor(
@@ -59,7 +60,10 @@ export class AdminController {
   async toggleUserBlock(req: Request, res: Response, next: NextFunction) {
     try {
       const id = String(req.params.id);
-      const status = await this.toggleUserBlockUseCase.execute(id);
+      const status = await this.toggleUserBlockUseCase.execute(
+        id,
+        (req as AuthenticatedRequest).userId,
+      );
       return res.status(200).json({ success: true, status });
     } catch (error) {
       next(error);
@@ -107,7 +111,8 @@ export class AdminController {
 
   async createCourse(req: Request, res: Response, next: NextFunction) {
     try {
-      const { title, category, description, price, level, thumbnail, status } = req.body;
+      const { title, category, description, price, level, thumbnail, status } =
+        req.body;
       const data = await this.createCourseUseCase.execute({
         title,
         category,
@@ -148,7 +153,9 @@ export class AdminController {
     try {
       const id = String(req.params.id);
       await this.deleteCourseUseCase.execute(id);
-      return res.status(200).json({ success: true, message: "Course deleted." });
+      return res
+        .status(200)
+        .json({ success: true, message: "Course deleted." });
     } catch (error) {
       next(error);
     }
@@ -177,7 +184,9 @@ export class AdminController {
     try {
       const id = String(req.params.id);
       await this.deleteCategoryUseCase.execute(id);
-      return res.status(200).json({ success: true, message: "Category deleted." });
+      return res
+        .status(200)
+        .json({ success: true, message: "Category deleted." });
     } catch (error) {
       next(error);
     }
@@ -204,7 +213,9 @@ export class AdminController {
   async markNotificationsRead(req: Request, res: Response, next: NextFunction) {
     try {
       await this.markNotificationsReadUseCase.execute();
-      return res.status(200).json({ success: true, message: "Notifications marked as read." });
+      return res
+        .status(200)
+        .json({ success: true, message: "Notifications marked as read." });
     } catch (error) {
       next(error);
     }

@@ -4,6 +4,7 @@ import { IUserRepository } from "../interface/IUserRepository";
 import { IJwtService } from "../interface/IJwtService";
 import { IOtpRepository } from "../interface/IOtpRepository";
 import { IOtpService } from "../interface/IOtpService";
+import { UserBlockedError } from "../../../core/errors/AppError";
 
 export class LoginUseCase {
   constructor(
@@ -21,6 +22,10 @@ export class LoginUseCase {
 
     if (!user) {
       throw new Error("User does not exist. Please create an account.");
+    }
+
+    if (user.getIsBlocked()) {
+      throw new UserBlockedError();
     }
 
     if (user.getRole() === "admin") {

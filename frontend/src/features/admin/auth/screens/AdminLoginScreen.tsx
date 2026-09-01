@@ -60,6 +60,13 @@ const AdminLoginScreen = () => {
         replace: true,
       });
     } catch (error: any) {
+      if (
+        error?.code === "USER_BLOCKED" ||
+        error?.response?.data?.code === "USER_BLOCKED"
+      ) {
+        return;
+      }
+
       const message =
         error?.response?.data?.message ||
         error?.message ||

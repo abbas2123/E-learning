@@ -14,6 +14,8 @@ import { ForgotPassUseCase } from "../useCase/ForgotPasswordUseCase";
 import { ResetPasswordUseCase } from "../useCase/resetPasswordUseCase";
 import { RefreshTokenUseCase } from "../useCase/refreshTokenUseCase";
 import { AdminLoginUseCase } from "../useCase/AdminLoginUseCase";
+import { AuthenticateUserUseCase } from "../useCase/AuthenticateUserUseCase";
+import { createAuthMiddleware } from "../../../middlewares/authMiddleware";
 const userRepository = new UserRepository();
 const passwordService = new PasswordService();
 const jwtService = new JwtService();
@@ -65,6 +67,11 @@ const adminLoginUseCase = new AdminLoginUseCase(
   passwordService,
   jwtService,
 );
+const authenticateUserUseCase = new AuthenticateUserUseCase(
+  userRepository,
+  jwtService,
+);
+export const authMiddleware = createAuthMiddleware(authenticateUserUseCase);
 export const authController = new AuthControler(
   registerUseCase,
   loginUseCase,

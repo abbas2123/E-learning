@@ -1,5 +1,6 @@
 import type { IUserRepository } from "../interface/IUserRepository";
 import type { IJwtService } from "../interface/IJwtService";
+import { UserBlockedError } from "../../../core/errors/AppError";
 
 export class RefreshTokenUseCase {
   constructor(
@@ -17,7 +18,7 @@ export class RefreshTokenUseCase {
     }
 
     if (user.getIsBlocked()) {
-      throw new Error("User account is blocked.");
+      throw new UserBlockedError();
     }
 
     if (!user.isEmailVerified()) {

@@ -5,6 +5,7 @@ import { IEmailService } from "../interface/IEmailService";
 import { VerifyOtpDto } from "../dtos/VerifyOtpDto";
 import { IPasswordService } from "../interface/IPasswordService";
 import crypto from "crypto";
+import { UserBlockedError } from "../../../core/errors/AppError";
 export class VerifyOtpUseCase {
   constructor(
     private userRepository: IUserRepository,
@@ -36,6 +37,9 @@ export class VerifyOtpUseCase {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new Error("User does not exist.");
+    }
+    if (user.getIsBlocked()) {
+      throw new UserBlockedError();
     }
     if (dto.purpose === "EMAIL_VERIFICATION") {
       // Set isVerified = true and status = ACTIVE

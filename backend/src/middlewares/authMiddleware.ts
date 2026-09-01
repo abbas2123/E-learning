@@ -1,63 +1,36 @@
 import type { Request, Response, NextFunction } from "express";
-import { JwtService } from "../modules/auth/Repository/services/JwtService";
-import { UserModel } from "../modules/auth/Repository/database/User";
-
-const jwtService = new JwtService();
+import type { AuthenticateUserUseCase } from "../modules/auth/useCase/AuthenticateUserUseCase";
+import { UnauthorizedError } from "../core/errors/AppError";
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
   userRole?: string;
 }
 
-export async function authMiddleware(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
+export function createAuthMiddleware(
+  authenticateUser: AuthenticateUserUseCase,
 ) {
-  try {
+  return async function authMiddleware(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) {
     const authHeader = req.headers.authorization;
-    // console.log("authheader", authHeader);
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token missing or invalid.",
-      });
+      return next(
+        new UnauthorizedError("Authentication token missing or invalid."),
+      );
     }
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwtService.verifyAccessToken(token);
-    if (!decoded || !decoded.userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired access token.",
-      });
+    try {
+      const authenticatedUser = await authenticateUser.execute(
+        authHeader.split(" ")[1],
+      );
+      req.userId = authenticatedUser.userId;
+      req.userRole = authenticatedUser.userRole;
+      return next();
+    } catch (error) {
+      return next(error);
     }
-
-    const user = await UserModel.findOne({ id: decoded.userId });
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User account not found.",
-      });
-    }
-
-    // Enforce OTP verification: block unverified users
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        requireOtp: true,
-        email: user.email,
-        message: "Account not verified. Please verify your email via OTP.",
-      });
-    }
-
-    req.userId = decoded.userId;
-    req.userRole = user.role;
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized: Invalid or expired access token.",
-    });
-  }
+  };
 }

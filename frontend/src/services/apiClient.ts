@@ -1,6 +1,44 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const USER_BLOCKED_MESSAGE =
+  "Your account has been blocked by the administrator.";
+let blockedNoticeShown = false;
+
+window.addEventListener("totc:auth-restored", () => {
+  blockedNoticeShown = false;
+});
+
+function clearStoredAuth() {
+  localStorage.removeItem("totc_token");
+  localStorage.removeItem("totc_user");
+  localStorage.removeItem("totc_is_logged_in");
+}
+
+function handleBlockedAccount() {
+  clearStoredAuth();
+  window.dispatchEvent(new Event("totc:auth-blocked"));
+
+  if (!blockedNoticeShown) {
+    blockedNoticeShown = true;
+    toast.error(USER_BLOCKED_MESSAGE);
+  }
+
+  const path = window.location.pathname;
+  if (
+    path !== "/login" &&
+    path !== "/instructor/login" &&
+    path !== "/admin/login"
+  ) {
+    const loginPath = path.startsWith("/instructor")
+      ? "/instructor/login"
+      : path.startsWith("/admin")
+        ? "/admin/login"
+        : "/login";
+    window.location.assign(loginPath);
+  }
+}
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -51,6 +89,16 @@ apiClient.interceptors.response.use(
       requestUrl.includes("/api/auth/forgot-password") ||
       requestUrl.includes("/api/auth/reset-password") ||
       requestUrl.includes("/api/auth/refresh");
+
+    const responseData = error.response?.data;
+    const responseCode =
+      responseData && typeof responseData === "object" && "code" in responseData
+        ? String((responseData as { code: unknown }).code)
+        : undefined;
+
+    if (responseCode === "USER_BLOCKED") {
+      handleBlockedAccount();
+    }
 
     /*
      * Access token expired -> try refreshing automatically once

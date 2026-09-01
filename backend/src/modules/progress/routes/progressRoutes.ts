@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createProgressContainer } from "../composition/progressContainer";
-import { authMiddleware } from "../../../middlewares/authMiddleware";
+import { authMiddleware } from "../../auth/composition/auth.container";
 
 const router = Router();
 const { controller } = createProgressContainer();
@@ -27,10 +27,8 @@ router.get(
 );
 
 // 4. GET /api/courses/:courseId/progress
-router.get(
-  "/courses/:courseId/progress",
-  authMiddleware,
-  (req, res, next) => controller.getCourseProgress(req, res, next),
+router.get("/courses/:courseId/progress", authMiddleware, (req, res, next) =>
+  controller.getCourseProgress(req, res, next),
 );
 
 export default router;

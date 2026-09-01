@@ -61,9 +61,13 @@ export default function InstructorLoginScreen() {
         return;
       }
 
-      if (response.user?.role !== "instructor" && response.user?.role !== "admin") {
+      if (
+        response.user?.role !== "instructor" &&
+        response.user?.role !== "admin"
+      ) {
         toast.warning("Student Account Detected", {
-          description: "This portal is for instructors. Redirecting to course dashboard.",
+          description:
+            "This portal is for instructors. Redirecting to course dashboard.",
         });
         navigate("/", { replace: true });
         return;
@@ -75,6 +79,13 @@ export default function InstructorLoginScreen() {
 
       navigate("/instructor/dashboard", { replace: true });
     } catch (err: any) {
+      if (
+        err?.code === "USER_BLOCKED" ||
+        err?.response?.data?.code === "USER_BLOCKED"
+      ) {
+        return;
+      }
+
       if (
         err?.requireOtp ||
         err?.response?.data?.requireOtp ||
@@ -88,7 +99,9 @@ export default function InstructorLoginScreen() {
             "Your instructor account is not verified. An OTP code has been sent to your email.",
         });
         navigate("/verify-otp", {
-          state: { email: err?.email || err?.response?.data?.email || trimmedEmail },
+          state: {
+            email: err?.email || err?.response?.data?.email || trimmedEmail,
+          },
           replace: true,
         });
         return;
@@ -135,7 +148,8 @@ export default function InstructorLoginScreen() {
               </h2>
 
               <p className="mt-3 text-xs text-slate-400 leading-relaxed">
-                Manage curriculum, publish interactive video lectures, build automated quizzes, and track earnings.
+                Manage curriculum, publish interactive video lectures, build
+                automated quizzes, and track earnings.
               </p>
             </div>
 

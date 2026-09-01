@@ -10,7 +10,8 @@ export function errorHandler(
 ) {
   const isDev = process.env.NODE_ENV !== "production";
   const statusCode = err.statusCode || (err.status ? Number(err.status) : 500);
-  const code = err.code || (statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST");
+  const code =
+    err.code || (statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST");
   const requestId = req.requestId;
 
   Logger.error(err.message || "Unhandled server error", {
@@ -22,10 +23,15 @@ export function errorHandler(
     stack: isDev ? err.stack : undefined,
   });
 
+  if (code === "USER_BLOCKED") {
+    res.clearCookie("refreshToken", { path: "/" });
+  }
+
   // Safe message mapping to avoid exposing MongoDB / JWT internals in production
   let message = err.message || "An unexpected error occurred.";
   if (!isDev && statusCode === 500 && !(err instanceof AppError)) {
-    message = "Internal Server Error. Please contact support if the problem persists.";
+    message =
+      "Internal Server Error. Please contact support if the problem persists.";
   }
 
   return res.status(statusCode).json({

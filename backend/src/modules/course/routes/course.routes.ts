@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { courseController } from "../composition/course.container";
 import { dashboardController } from "../../dashboard/composition/dashboard.container";
-import { authMiddleware } from "../../../middlewares/authMiddleware";
+import { authMiddleware } from "../../auth/composition/auth.container";
 
 const router = Router();
 

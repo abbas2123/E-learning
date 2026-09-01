@@ -5,7 +5,11 @@ import helmet from "helmet";
 import "dotenv/config";
 
 import { requestIdMiddleware } from "./middlewares/requestIdMiddleware.js";
-import { apiLimiter, authLimiter, paymentLimiter } from "./middlewares/rateLimiter.js";
+import {
+  apiLimiter,
+  authLimiter,
+  paymentLimiter,
+} from "./middlewares/rateLimiter.js";
 
 import healthRoutes from "./routes/healthRoutes.js";
 import authRoutes from "./modules/auth/routes/auth.routes.js";
@@ -28,6 +32,9 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 
+// The EC2 deployment has one trusted reverse-proxy hop (Nginx).
+app.set("trust proxy", 1);
+
 // Security headers
 app.use(
   helmet({
@@ -39,7 +46,12 @@ app.use(
 // CORS configuration supporting single/multi origins and local dev ports
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",").map((url) => url.trim())
-  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"];
+  : [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:5176",
+    ];
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -62,7 +74,12 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-request-id"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "x-request-id",
+    ],
     exposedHeaders: ["x-request-id"],
   }),
 );

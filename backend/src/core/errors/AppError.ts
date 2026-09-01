@@ -19,7 +19,10 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message = "Invalid input payload", details: Record<string, unknown> | null = null) {
+  constructor(
+    message = "Invalid input payload",
+    details: Record<string, unknown> | null = null,
+  ) {
     super(message, 400, "VALIDATION_ERROR", details);
   }
 }
@@ -30,9 +33,21 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class InvalidCredentialsError extends AppError {
+  constructor(message = "Invalid email or password.") {
+    super(message, 401, "INVALID_CREDENTIALS");
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message = "Access denied") {
     super(message, 403, "FORBIDDEN");
+  }
+}
+
+export class UserBlockedError extends AppError {
+  constructor(message = "Your account has been blocked by the administrator.") {
+    super(message, 403, "USER_BLOCKED");
   }
 }
 
@@ -49,7 +64,10 @@ export class ConflictError extends AppError {
 }
 
 export class PaymentError extends AppError {
-  constructor(message = "Payment processing error", details: Record<string, unknown> | null = null) {
+  constructor(
+    message = "Payment processing error",
+    details: Record<string, unknown> | null = null,
+  ) {
     super(message, 400, "PAYMENT_ERROR", details);
   }
 }
