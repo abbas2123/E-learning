@@ -10,6 +10,8 @@ import type { SubmitCourseForApprovalUseCase } from "../useCase/SubmitCourseForA
 import type { GetInstructorStudentsUseCase } from "../useCase/GetInstructorStudentsUseCase";
 import type { GetInstructorRevenueUseCase } from "../useCase/GetInstructorRevenueUseCase";
 import type { GetInstructorAnalyticsUseCase } from "../useCase/GetInstructorAnalyticsUseCase";
+import type { UploadInstructorVideoUseCase } from "../useCase/UploadInstructorVideoUseCase";
+import type { ApplyInstructorUseCase } from "../useCase/ApplyInstructorUseCase";
 
 export class InstructorController {
   constructor(
@@ -22,7 +24,29 @@ export class InstructorController {
     private readonly getInstructorStudentsUseCase: GetInstructorStudentsUseCase,
     private readonly getInstructorRevenueUseCase: GetInstructorRevenueUseCase,
     private readonly getInstructorAnalyticsUseCase: GetInstructorAnalyticsUseCase,
+    private readonly uploadInstructorVideoUseCase: UploadInstructorVideoUseCase,
+    private readonly applyInstructorUseCase: ApplyInstructorUseCase,
   ) {}
+
+  async uploadVideo(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No video file provided." });
+      }
+      const result = await this.uploadInstructorVideoUseCase.execute({
+        buffer: req.file.buffer,
+      });
+      return res.status(200).json({
+        success: true,
+        data: {
+          url: result.url,
+          duration: result.duration || 0,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   async getDashboardStats(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -121,6 +145,23 @@ export class InstructorController {
     try {
       const analytics = await this.getInstructorAnalyticsUseCase.execute(req.userId!);
       return res.status(200).json({ success: true, data: analytics });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async applyInstructor(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { bio, expertise, experience, sampleVideoUrl } = req.body;
+      const result = await this.applyInstructorUseCase.execute({
+        userId,
+        bio,
+        expertise,
+        experience,
+        sampleVideoUrl,
+      });
+      return res.status(200).json(result);
     } catch (error) {
       next(error);
     }

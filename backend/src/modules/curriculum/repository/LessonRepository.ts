@@ -17,6 +17,8 @@ export class LessonRepository implements ILessonRepository {
       description: doc.description ?? undefined,
       type: doc.type ?? "video",
       videoUrl: doc.videoUrl ?? undefined,
+      videoSourceType: doc.videoSourceType ?? undefined,
+      quizId: doc.quizId ?? undefined,
       duration: doc.duration ?? 0,
       order: doc.order ?? 1,
       isPreview: Boolean(doc.isPreview),
@@ -41,6 +43,8 @@ export class LessonRepository implements ILessonRepository {
       description: params.description?.trim() || null,
       type: params.type || "video",
       videoUrl: params.videoUrl?.trim() || null,
+      videoSourceType: params.videoSourceType || null,
+      quizId: params.quizId?.trim() || null,
       duration: params.duration || 0,
       order,
       isPreview: Boolean(params.isPreview),
@@ -64,6 +68,9 @@ export class LessonRepository implements ILessonRepository {
     if (params.type !== undefined) lesson.type = params.type;
     if (params.videoUrl !== undefined)
       lesson.videoUrl = params.videoUrl.trim() || null;
+    if (params.videoSourceType !== undefined)
+      lesson.videoSourceType = params.videoSourceType as any;
+    if (params.quizId !== undefined) lesson.quizId = params.quizId.trim() || null;
     if (params.duration !== undefined) lesson.duration = params.duration;
     if (params.order !== undefined) lesson.order = params.order;
     if (params.isPreview !== undefined) lesson.isPreview = params.isPreview;
@@ -97,6 +104,23 @@ export class LessonRepository implements ILessonRepository {
   async findByCourseId(courseId: string): Promise<LessonDto[]> {
     const docs = await LessonModel.find({ courseId }).sort({ order: 1 });
     return docs.map((d) => this.toDto(d));
+  }
+
+  async findByQuizOrLessonId(
+    courseId: string,
+    quizId: string,
+    lessonId?: string,
+  ): Promise<LessonDto | null> {
+    const orConditions: any[] = [{ quizId }, { id: quizId }];
+    if (lessonId) {
+      orConditions.push({ id: lessonId });
+    }
+    const doc = await LessonModel.findOne({
+      courseId,
+      $or: orConditions,
+    });
+    if (!doc) return null;
+    return this.toDto(doc);
   }
 
   async reorderLessons(

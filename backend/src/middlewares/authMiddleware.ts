@@ -25,9 +25,7 @@ export async function authMiddleware(
     }
 
     const token = authHeader.split(" ")[1];
-    console.log("token", token);
     const decoded = jwtService.verifyAccessToken(token);
-    console.log("decoded:", decoded);
     if (!decoded || !decoded.userId) {
       return res.status(401).json({
         success: false,

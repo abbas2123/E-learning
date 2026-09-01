@@ -1,6 +1,7 @@
 import type { IQuizRepository } from "../interface/IQuizRepository";
 import type { IQuestionRepository } from "../interface/IQuestionRepository";
 import type { IQuizAttemptRepository, QuizAttemptDto, AnswerDto } from "../interface/IQuizAttemptRepository";
+import type { ILessonRepository } from "../../curriculum/interface/ILessonRepository";
 import type { MarkLessonCompleteUseCase } from "../../progress/useCase/MarkLessonCompleteUseCase";
 
 export interface SubmitQuizAttemptInput {
@@ -20,6 +21,7 @@ export class SubmitQuizAttemptUseCase {
     private readonly questionRepository: IQuestionRepository,
     private readonly attemptRepository: IQuizAttemptRepository,
     private readonly markLessonCompleteUseCase?: MarkLessonCompleteUseCase,
+    private readonly lessonRepository?: ILessonRepository,
   ) {}
 
   async execute(input: SubmitQuizAttemptInput): Promise<SubmitQuizAttemptResult> {
@@ -115,17 +117,24 @@ export class SubmitQuizAttemptUseCase {
 
     let lessonMarkedComplete = false;
 
-    // Trigger lesson completion if quiz passed and quiz is associated with a lesson
-    if (passed && quiz.lessonId && this.markLessonCompleteUseCase) {
+    // Trigger lesson content completion upon quiz submission (separating content completion from score evaluation)
+    if (this.markLessonCompleteUseCase && this.lessonRepository) {
       try {
-        await this.markLessonCompleteUseCase.execute({
-          userId,
-          courseId: quiz.courseId,
-          lessonId: quiz.lessonId,
-        });
-        lessonMarkedComplete = true;
+        const matchingLesson = await this.lessonRepository.findByQuizOrLessonId(
+          quiz.courseId,
+          quiz.id,
+          quiz.lessonId || undefined,
+        );
+        if (matchingLesson) {
+          await this.markLessonCompleteUseCase.execute({
+            userId,
+            courseId: quiz.courseId,
+            lessonId: matchingLesson.id,
+          });
+          lessonMarkedComplete = true;
+        }
       } catch (err) {
-        console.error("Failed to auto-mark lesson complete after quiz pass:", err);
+        console.error("Failed to auto-mark lesson complete after quiz submission:", err);
       }
     }
 

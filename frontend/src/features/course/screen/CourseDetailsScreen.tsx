@@ -8,6 +8,7 @@ import {
   Globe2,
   GraduationCap,
   Heart,
+  HelpCircle,
   PlayCircle,
   Star,
   Users,
@@ -15,67 +16,16 @@ import {
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { getCoursesId } from "../service/courseService";
+import { getCoursesId, getCourseCurriculum } from "../service/courseService";
+import quizService from "../../quiz/service/quizService";
+import type { Quiz } from "../../quiz/types/quiz.types";
 import { paymentService } from "../../../services/paymentService";
 import reviewService, { type CourseReviewsData } from "../../../services/reviewService";
 import wishlistService from "../../../services/wishlistService";
 import { useAuth } from "../../../context/AuthContext";
 import CourseReviewsSection from "../components/CourseReviewsSection";
-import type { Course } from "../types/course.types";
-
-interface Lesson {
-  id: string;
-  title: string;
-  duration: number;
-  type: "video" | "text" | "quiz";
-  isPreview?: boolean;
-}
-
-interface CourseSection {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-const defaultCourseSections: CourseSection[] = [
-  {
-    id: "section-1",
-    title: "Introduction & Foundations",
-    lessons: [
-      {
-        id: "lesson-1",
-        title: "Welcome & Course Roadmap",
-        duration: 8,
-        type: "video",
-        isPreview: true,
-      },
-      {
-        id: "lesson-2",
-        title: "Environment Setup & Prerequisites",
-        duration: 14,
-        type: "video",
-      },
-    ],
-  },
-  {
-    id: "section-2",
-    title: "Core Concepts & Architecture",
-    lessons: [
-      {
-        id: "lesson-3",
-        title: "Core Architecture & Data Flow",
-        duration: 22,
-        type: "video",
-      },
-      {
-        id: "lesson-4",
-        title: "Practical Exercises & Hands-on Project",
-        duration: 30,
-        type: "quiz",
-      },
-    ],
-  },
-];
+import type { Course, CourseSection } from "../types/course.types";
+import { loadRazorpayScript, destroyRazorpay, safeOpen } from "../../../utils/razorpayUtils";
 
 const CourseDetailsScreen = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -83,11 +33,11 @@ const CourseDetailsScreen = () => {
   const { isLoggedIn } = useAuth();
 
   const [course, setCourse] = useState<Course | null>(null);
+  const [sections, setSections] = useState<CourseSection[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>([
-    defaultCourseSections[0].id,
-  ]);
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   // Reviews aggregate (loaded eagerly for hero display)
   const [reviewsData, setReviewsData] = useState<CourseReviewsData | null>(null);
@@ -100,8 +50,17 @@ const CourseDetailsScreen = () => {
     async function loadCourse() {
       if (!courseId) return;
       try {
-        const data = await getCoursesId(courseId);
-        setCourse(data);
+        const [courseData, curriculumSections, courseQuizzes] = await Promise.all([
+          getCoursesId(courseId),
+          getCourseCurriculum(courseId).catch(() => []),
+          quizService.getCourseQuizzes(courseId).catch(() => []),
+        ]);
+        setCourse(courseData);
+        setSections(curriculumSections || []);
+        setQuizzes(courseQuizzes || []);
+        if (curriculumSections && curriculumSections.length > 0) {
+          setOpenSections([curriculumSections[0].id]);
+        }
       } catch (err) {
         console.error("Failed to load course details", err);
       } finally {
@@ -124,17 +83,13 @@ const CourseDetailsScreen = () => {
       return;
     }
     setEnrolling(true);
+    let rzp: any = null;
     try {
       const order = await paymentService.createOrder(courseId);
 
-      const isScriptLoaded = await new Promise<boolean>((resolve) => {
-        if ((window as any).Razorpay) return resolve(true);
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-      });
+      // Always force-reload: never reuse a cached window.Razorpay that may be
+      // in a stale state after destroyRazorpay() was called previously.
+      const isScriptLoaded = await loadRazorpayScript();
 
       if (!isScriptLoaded || !(window as any).Razorpay) {
         await paymentService.verifyPayment({
@@ -144,7 +99,7 @@ const CourseDetailsScreen = () => {
           razorpay_signature: "dummy_sig",
         });
         toast.success(`Enrolled in "${order.courseTitle}"!`);
-        navigate("/profile");
+        navigate("/my-learning");
         return;
       }
 
@@ -154,8 +109,8 @@ const CourseDetailsScreen = () => {
         currency: order.currency || "INR",
         name: "TOTC Learning Platform",
         description: `Enrollment for ${order.courseTitle}`,
-        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
         order_id: order.orderId,
+        retry: { enabled: false },
         handler: async (response: any) => {
           try {
             await paymentService.verifyPayment({
@@ -165,19 +120,51 @@ const CourseDetailsScreen = () => {
               razorpay_signature: response.razorpay_signature,
             });
             toast.success(`Payment Verified! Welcome to "${order.courseTitle}" 🎉`);
-            navigate("/profile");
+            navigate("/my-learning");
           } catch (err: any) {
-            toast.error(err.message || "Payment verification failed.");
+            const reason = err.message || "Payment verification signature mismatch.";
+            destroyRazorpay(rzp);
+            navigate(
+              `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent(reason)}`,
+            );
           }
+        },
+        modal: {
+          ondismiss: () => {
+            setEnrolling(false);
+            toast.info("Payment cancelled. You can retry from the course page.");
+          },
         },
         theme: { color: "#4f46e5" },
       };
 
-      const razorpayInstance = new (window as any).Razorpay(options);
-      razorpayInstance.open();
+      rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        const errorMsg =
+          response?.error?.description ||
+          response?.error?.reason ||
+          "Payment was declined by your bank or card issuer.";
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent(errorMsg)}`,
+        );
+      });
+
+      // safeOpen intercepts Razorpay's broken-iframe scenario which normally
+      // triggers window.alert("This browser is not supported")
+      const opened = safeOpen(rzp);
+      if (!opened) {
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent("Payment initialization failed. Please try again.")}`,
+        );
+      }
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || err.message || "Failed to initialize enrollment",
+      destroyRazorpay(rzp);
+      const errorMsg =
+        err?.response?.data?.message || err.message || "Failed to initialize enrollment";
+      navigate(
+        `/payment/failure?courseId=${courseId}&reason=${encodeURIComponent(errorMsg)}`,
       );
     } finally {
       setEnrolling(false);
@@ -481,14 +468,14 @@ const CourseDetailsScreen = () => {
                     type="button"
                     onClick={() =>
                       setOpenSections(
-                        openSections.length === defaultCourseSections.length
+                        openSections.length === sections.length
                           ? []
-                          : defaultCourseSections.map((s) => s.id),
+                          : sections.map((s) => s.id),
                       )
                     }
                     className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
                   >
-                    {openSections.length === defaultCourseSections.length
+                    {openSections.length === sections.length
                       ? "Collapse all"
                       : "Expand all"}
                   </button>
@@ -496,79 +483,144 @@ const CourseDetailsScreen = () => {
               </div>
 
               <div className="space-y-3">
-                {defaultCourseSections.map((section, index) => {
-                  const isOpen = openSections.includes(section.id);
-                  const totalDuration = section.lessons.reduce(
-                    (total, lesson) => total + lesson.duration,
-                    0,
-                  );
+                {sections.length > 0 ? (
+                  sections.map((section, index) => {
+                    const isOpen = openSections.includes(section.id);
+                    const totalDuration = (section.lessons || []).reduce(
+                      (total, lesson) => total + (lesson.duration || 0),
+                      0,
+                    );
 
-                  return (
-                    <div
-                      key={section.id}
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSection(section.id)}
-                        className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition hover:bg-slate-50 sm:px-6"
+                    return (
+                      <div
+                        key={section.id}
+                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                       >
-                        <div className="flex min-w-0 items-center gap-4">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
-                            {String(index + 1).padStart(2, "0")}
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(section.id)}
+                          className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition hover:bg-slate-50 sm:px-6"
+                        >
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
+                              {String(index + 1).padStart(2, "0")}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-slate-900">{section.title}</h3>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {(section.lessons || []).length} items • {formatDuration(totalDuration)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-slate-900">{section.title}</h3>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {section.lessons.length} lessons • {formatDuration(totalDuration)}
-                            </p>
+                          <div className="shrink-0 rounded-full border border-slate-200 p-1.5 text-slate-400">
+                            {isOpen ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
                           </div>
-                        </div>
-                        <div className="shrink-0 rounded-full border border-slate-200 p-1.5 text-slate-400">
-                          {isOpen ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
-                        </div>
-                      </button>
+                        </button>
 
-                      {isOpen && (
-                        <div className="border-t border-slate-100">
-                          {section.lessons.map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className="group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
-                            >
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                                  {lesson.type === "video" && <PlayCircle size={17} />}
-                                  {lesson.type === "text" && <FileText size={17} />}
-                                  {lesson.type === "quiz" && <BookOpen size={17} />}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium text-slate-700">
-                                    {lesson.title}
-                                  </p>
-                                  <div className="mt-1 flex items-center gap-2">
-                                    <span className="text-xs capitalize text-slate-400">
-                                      {lesson.type}
-                                    </span>
-                                    {lesson.isPreview && (
-                                      <span className="text-xs font-semibold text-emerald-600">
-                                        • Preview
+                        {isOpen && (
+                          <div className="border-t border-slate-100 divide-y divide-slate-100">
+                            {(section.lessons || []).map((lesson) => (
+                              <div
+                                key={lesson.id}
+                                className="group flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
+                              >
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
+                                    lesson.type === "quiz"
+                                      ? "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
+                                      : "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600"
+                                  }`}>
+                                    {lesson.type === "video" && <PlayCircle size={17} />}
+                                    {lesson.type === "text" && <FileText size={17} />}
+                                    {lesson.type === "quiz" && <HelpCircle size={17} />}
+                                    {lesson.type === "assignment" && <Check size={17} />}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-slate-700">
+                                      {lesson.title}
+                                    </p>
+                                    <div className="mt-1 flex items-center gap-2">
+                                      <span className={`text-xs font-semibold capitalize ${lesson.type === "quiz" ? "text-amber-600" : "text-slate-400"}`}>
+                                        {lesson.type === "quiz"
+                                          ? `Knowledge Quiz ${lesson.questionCount ? `(${lesson.questionCount} Questions)` : ""}`
+                                          : lesson.type === "assignment"
+                                            ? "Practical Assignment"
+                                            : lesson.type === "text"
+                                              ? "Reading Module"
+                                              : "Video Lecture"}
                                       </span>
-                                    )}
+                                      {lesson.isPreview && (
+                                        <span className="text-xs font-semibold text-emerald-600">
+                                          • Free Preview
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
+                                  <Clock3 size={14} />
+                                  {lesson.duration || 10} min
+                                </div>
                               </div>
-                              <div className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
-                                <Clock3 size={14} />
-                                {lesson.duration} min
-                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : quizzes.length > 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 className="font-bold text-slate-900 mb-3">Assessments & Quizzes</h3>
+                    <div className="space-y-2">
+                      {quizzes.map((q) => (
+                        <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-3">
+                            <BookOpen size={18} className="text-indigo-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">{q.title}</p>
+                              <p className="text-xs text-slate-500">Passing score: {q.passingScore}% • {q.timeLimitSeconds ? `${Math.floor(q.timeLimitSeconds/60)} min` : "No time limit"}</p>
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-500">
+                    <BookOpen className="mx-auto h-8 w-8 text-slate-400 mb-2" />
+                    <p className="text-sm font-medium">Curriculum is being authored by the instructor.</p>
+                  </div>
+                )}
+
+                {/* Additional Standalone Quizzes Section if sections exist and quizzes exist */}
+                {sections.length > 0 && quizzes.length > 0 && (
+                  <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/50 shadow-sm mt-4">
+                    <div className="px-5 py-4 border-b border-indigo-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-xs">
+                          QZ
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-indigo-950">Course Quizzes & Assessments ({quizzes.length})</h4>
+                          <p className="text-xs text-indigo-600">Included with this course</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      {quizzes.map((q) => (
+                        <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-indigo-100/80">
+                          <div className="flex items-center gap-3">
+                            <BookOpen size={16} className="text-indigo-600" />
+                            <span className="text-sm font-medium text-slate-800">{q.title}</span>
+                          </div>
+                          <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                            Pass: {q.passingScore}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 

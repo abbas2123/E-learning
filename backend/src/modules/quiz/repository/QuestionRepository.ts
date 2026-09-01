@@ -55,14 +55,34 @@ export class QuestionRepository implements IQuestionRepository {
   }
 
   async findByQuizId(quizId: string): Promise<QuestionDto[]> {
-    const docs = await QuestionModel.find({ quizId }).sort({ order: 1 });
+    let docs = await QuestionModel.find({ quizId }).sort({ order: 1 });
+    if (docs.length === 0) {
+      const { QuizModel } = await import("../database/Quiz");
+      const quiz = await QuizModel.findOne({
+        $or: [{ id: quizId }, { lessonId: quizId }],
+      });
+      if (quiz && quiz.id !== quizId) {
+        docs = await QuestionModel.find({ quizId: quiz.id }).sort({ order: 1 });
+      }
+    }
     return docs.map((d) => this.toDto(d));
   }
 
   async findByQuizIdWithAnswers(quizId: string): Promise<QuestionWithAnswersDto[]> {
-    const docs = await QuestionModel.find({ quizId })
+    let docs = await QuestionModel.find({ quizId })
       .select("+correctOptionIds")
       .sort({ order: 1 });
+    if (docs.length === 0) {
+      const { QuizModel } = await import("../database/Quiz");
+      const quiz = await QuizModel.findOne({
+        $or: [{ id: quizId }, { lessonId: quizId }],
+      });
+      if (quiz && quiz.id !== quizId) {
+        docs = await QuestionModel.find({ quizId: quiz.id })
+          .select("+correctOptionIds")
+          .sort({ order: 1 });
+      }
+    }
     return docs.map((d) => this.toDtoWithAnswers(d));
   }
 
@@ -101,5 +121,18 @@ export class QuestionRepository implements IQuestionRepository {
   async getMaxOrder(quizId: string): Promise<number> {
     const doc = await QuestionModel.findOne({ quizId }).sort({ order: -1 }).select("order");
     return doc?.order ?? 0;
+  }
+
+  async getQuestionCountsByQuizIds(quizIds: string[]): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    if (quizIds.length === 0) return result;
+    const aggregated = await QuestionModel.aggregate([
+      { $match: { quizId: { $in: quizIds } } },
+      { $group: { _id: "$quizId", count: { $sum: 1 } } },
+    ]);
+    for (const item of aggregated) {
+      result.set(item._id, item.count);
+    }
+    return result;
   }
 }

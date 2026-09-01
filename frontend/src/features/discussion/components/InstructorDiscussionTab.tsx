@@ -25,10 +25,6 @@ export const InstructorDiscussionTab: React.FC<InstructorDiscussionTabProps> = (
 
   const [selectedDiscussionId, setSelectedDiscussionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDiscussions();
-  }, [page, statusFilter]);
-
   const loadDiscussions = async () => {
     try {
       setLoading(true);
@@ -47,6 +43,10 @@ export const InstructorDiscussionTab: React.FC<InstructorDiscussionTabProps> = (
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDiscussions();
+  }, [page, statusFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

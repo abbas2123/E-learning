@@ -93,6 +93,31 @@ export class AdminRepository implements IAdminRepository {
     };
   }
 
+  async updateUserRole(userId: string, role: string): Promise<AdminUserDto> {
+    const validRoles = [UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN];
+    if (!validRoles.includes(role as any)) {
+      throw new Error(`Invalid role. Must be one of: ${validRoles.join(", ")}`);
+    }
+
+    const user = await UserModel.findOne({ id: userId });
+    if (!user) throw new Error("User not found.");
+
+    user.role = role as any;
+    await user.save();
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.isBlocked ? "blocked" : "active",
+      isBlocked: user.isBlocked,
+      isVerified: user.isVerified,
+      avatar: user.avatar ?? undefined,
+      createdAt: user.createdAt,
+    };
+  }
+
   async getCourses(): Promise<AdminCourseDto[]> {
     const docs = await CourseModel.find().sort({ createdAt: -1 });
     return docs.map((c) => {

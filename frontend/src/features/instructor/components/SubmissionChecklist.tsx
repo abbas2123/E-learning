@@ -20,15 +20,20 @@ export function SubmissionChecklist({
 }: SubmissionChecklistProps) {
   const items = [
     { label: "Course Title & Description", ok: Boolean(course.title && course.description) },
-    { label: "Category & Level set", ok: Boolean(course.category && course.level) },
-    { label: "Pricing configured", ok: typeof course.price === "number" && course.price >= 0 },
+    { label: "Category & Level configured", ok: Boolean(course.category && course.level) },
+    { label: "Pricing configured (₹ INR)", ok: typeof course.price === "number" && course.price >= 0 },
     { label: "At least 1 Curriculum Section", ok: sectionCount > 0 },
     { label: "At least 1 Lesson added", ok: lessonCount > 0 },
-    { label: "Quiz or Assessment structure", ok: quizCount >= 0 },
+    { label: "Assessment & Knowledge Quizzes", ok: quizCount > 0 },
   ];
 
   const completedCount = items.filter((i) => i.ok).length;
-  const isReady = completedCount === items.length && course.status !== "pending" && course.status !== "published";
+  const isReady =
+    Boolean(course.title && course.description && course.category && course.level) &&
+    sectionCount > 0 &&
+    lessonCount > 0 &&
+    course.status !== "pending" &&
+    course.status !== "published";
 
   return (
     <div className="space-y-6 rounded-2xl border border-slate-800 bg-slate-900 p-6 text-white">
@@ -62,6 +67,16 @@ export function SubmissionChecklist({
             <span>{item.label}</span>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-xs text-indigo-300 flex items-center justify-between">
+        <div>
+          <strong className="block font-bold text-white mb-0.5">Course Completion & Certificate Passing Score:</strong>
+          <span>Students must score at least {course.minCertificateScore ?? 70}% on assessments to unlock their certificate.</span>
+        </div>
+        <span className="font-mono text-base font-extrabold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+          {course.minCertificateScore ?? 70}% Min
+        </span>
       </div>
 
       {course.rejectionReason && course.status === "rejected" && (

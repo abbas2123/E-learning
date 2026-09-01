@@ -12,18 +12,7 @@ import {
   BookOpen,
   CheckCircle2,
 } from "lucide-react";
-
-// ─── helpers ────────────────────────────────────────────────────────────────
-async function loadRazorpayScript(): Promise<boolean> {
-  if ((window as any).Razorpay) return true;
-  return new Promise((resolve) => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+import { loadRazorpayScript, destroyRazorpay, safeOpen } from "../../../utils/razorpayUtils";
 
 // ─── component ──────────────────────────────────────────────────────────────
 export default function CheckoutScreen() {
@@ -46,7 +35,6 @@ export default function CheckoutScreen() {
   // ── load course data ──
   useEffect(() => {
     if (isMulti) {
-      // Fetch all cart courses in parallel
       Promise.all(courseIds.map((id) => getCoursesId(id)))
         .then(setMultiCourses)
         .catch(() => toast.error("Failed to load cart courses."))
@@ -69,12 +57,18 @@ export default function CheckoutScreen() {
   const handleSinglePay = async () => {
     if (!courseId || !course) return;
     setPaying(true);
+    let rzp: any = null;
     try {
       const order = await paymentService.createOrder(courseId);
+
+      // Always force-reload the script to get a clean SDK instance.
+      // Reusing a cached window.Razorpay after destroyRazorpay() was called
+      // leads to a null iframe contentWindow, which triggers Razorpay's
+      // internal alert("This browser is not supported.") — not a real issue.
       const loaded = await loadRazorpayScript();
 
       if (!loaded || !(window as any).Razorpay) {
-        // Fallback for test environments
+        // Dev/test fallback — Razorpay CDN unreachable
         await paymentService.verifyPayment({
           courseId,
           razorpay_order_id: order.orderId,
@@ -93,7 +87,12 @@ export default function CheckoutScreen() {
         name: "TOTC E-Learning Platform",
         description: `Enrollment for ${order.courseTitle}`,
         order_id: order.orderId,
+        // Prevents Razorpay from showing its built-in retry/failure screen.
+        // Without this, a declined payment shows Razorpay's own UI instead
+        // of redirecting to our custom PaymentFailureScreen.
+        retry: { enabled: false },
         handler: async (response: any) => {
+          // SUCCESS PATH — backend is the sole source of truth for verification
           try {
             await paymentService.verifyPayment({
               courseId,
@@ -104,16 +103,56 @@ export default function CheckoutScreen() {
             toast.success(`Welcome to "${order.courseTitle}" 🎉`);
             navigate("/my-learning");
           } catch (err: any) {
-            toast.error(err.message || "Payment verification failed.");
+            const reason = err.message || "Payment verification signature mismatch.";
+            destroyRazorpay(rzp);
+            navigate(
+              `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent(reason)}`,
+            );
           }
+        },
+        modal: {
+          ondismiss: () => {
+            // User voluntarily closed — not a failure
+            setPaying(false);
+            toast.info("Payment cancelled. You can retry whenever you're ready.");
+          },
         },
         theme: { color: "#4f46e5" },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      rzp = new (window as any).Razorpay(options);
+
+      // FAILURE PATH — fires while modal is still open
+      // destroyRazorpay() must run BEFORE navigate() to purge the DOM overlay
+      rzp.on("payment.failed", (response: any) => {
+        const errMsg =
+          response?.error?.description ||
+          response?.error?.reason ||
+          "Payment was declined by your bank or card issuer.";
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent(errMsg)}`,
+        );
+      });
+
+      // safeOpen() wraps rzp.open() in a try/catch.
+      // If Razorpay's iframe fails to render (contentWindow === null),
+      // Razorpay's SDK calls window.alert("This browser is not supported").
+      // safeOpen() intercepts that scenario and returns false so we can
+      // redirect to our own failure page instead.
+      const opened = safeOpen(rzp);
+      if (!opened) {
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseId=${courseId}&orderId=${order.orderId}&reason=${encodeURIComponent("Payment initialization failed. Please try again.")}`,
+        );
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to initialize payment.");
+      destroyRazorpay(rzp);
+      const errMsg = err?.response?.data?.message || err.message || "Failed to initialize payment order.";
+      navigate(
+        `/payment/failure?courseId=${courseId}&reason=${encodeURIComponent(errMsg)}`,
+      );
     } finally {
       setPaying(false);
     }
@@ -123,12 +162,13 @@ export default function CheckoutScreen() {
   const handleMultiPay = async () => {
     if (courseIds.length === 0) return;
     setPaying(true);
+    let rzp: any = null;
     try {
       const order = await paymentService.createMultiOrder(courseIds);
       const loaded = await loadRazorpayScript();
 
       if (!loaded || !(window as any).Razorpay) {
-        // Fallback for test environments
+        // Dev/test fallback
         await paymentService.verifyMultiPayment({
           razorpay_order_id: order.orderId,
           razorpay_payment_id: `pay_${Date.now()}`,
@@ -149,6 +189,7 @@ export default function CheckoutScreen() {
         description: `Enrollment for ${order.courses.length} courses`,
         notes: { courses: courseNames },
         order_id: order.orderId,
+        retry: { enabled: false },
         handler: async (response: any) => {
           try {
             await paymentService.verifyMultiPayment({
@@ -162,16 +203,48 @@ export default function CheckoutScreen() {
             );
             navigate("/my-learning");
           } catch (err: any) {
-            toast.error(err.message || "Payment verification failed.");
+            const reason = err.message || "Payment verification failed.";
+            destroyRazorpay(rzp);
+            navigate(
+              `/payment/failure?courseIds=${courseIds.join(",")}&orderId=${order.orderId}&reason=${encodeURIComponent(reason)}`,
+            );
           }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaying(false);
+            toast.info("Payment cancelled. You can retry whenever you're ready.");
+          },
         },
         theme: { color: "#4f46e5" },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      rzp = new (window as any).Razorpay(options);
+
+      rzp.on("payment.failed", (response: any) => {
+        const errMsg =
+          response?.error?.description ||
+          response?.error?.reason ||
+          "Payment was declined by your bank or card issuer.";
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseIds=${courseIds.join(",")}&orderId=${order.orderId}&reason=${encodeURIComponent(errMsg)}`,
+        );
+      });
+
+      const opened = safeOpen(rzp);
+      if (!opened) {
+        destroyRazorpay(rzp);
+        navigate(
+          `/payment/failure?courseIds=${courseIds.join(",")}&orderId=${order.orderId}&reason=${encodeURIComponent("Payment initialization failed. Please try again.")}`,
+        );
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to initialize payment.");
+      destroyRazorpay(rzp);
+      const errMsg = err?.response?.data?.message || err.message || "Failed to initialize payment.";
+      navigate(
+        `/payment/failure?courseIds=${courseIds.join(",")}&reason=${encodeURIComponent(errMsg)}`,
+      );
     } finally {
       setPaying(false);
     }
@@ -341,6 +414,7 @@ export default function CheckoutScreen() {
             {/* Pay button */}
             <button
               type="button"
+              id="checkout-pay-btn"
               onClick={isMulti ? handleMultiPay : handleSinglePay}
               disabled={paying}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:opacity-50"

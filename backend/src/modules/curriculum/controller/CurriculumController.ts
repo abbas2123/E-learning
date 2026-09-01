@@ -23,10 +23,14 @@ export class CurriculumController {
     private readonly reorderLessonsUseCase: ReorderLessonsUseCase,
   ) {}
 
-  async getCourseCurriculum(req: Request, res: Response, next: NextFunction) {
+  async getCourseCurriculum(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const courseId = String(req.params.courseId);
-      const curriculum = await this.getCourseCurriculumUseCase.execute(courseId);
+      // userId and userRole are populated by optionalAuthMiddleware when a valid token is present
+      const userId = req.userId;
+      const userRole = req.userRole;
+
+      const curriculum = await this.getCourseCurriculumUseCase.execute(courseId, userId, userRole);
       return res.status(200).json({ success: true, data: curriculum });
     } catch (error) {
       next(error);

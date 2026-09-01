@@ -9,7 +9,6 @@ export class OtpService implements IOtpService {
   }
 
   async sendOtp(email: string, otp: string): Promise<void> {
-    console.log("email:", email, "otp:", otp);
     await this.emailService.sendOtpEmail(email, otp);
   }
 }

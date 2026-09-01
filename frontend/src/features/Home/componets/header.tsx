@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   Search,
   Heart,
-  Bell,
   Menu,
   X,
   User as UserIcon,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { SearchModal } from "../../../components/SearchModal";
 import { Avatar } from "../../../components/ui/Avatar";
+import { NotificationPopover } from "../../notifications/components/NotificationPopover";
 
 export default function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
@@ -103,16 +103,8 @@ export default function Navbar() {
                   <Heart size={18} />
                 </button>
 
-                {/* Notifications Link */}
-                <button
-                  type="button"
-                  onClick={() => navigate("/notifications")}
-                  className="relative rounded-full p-2 text-slate-300 transition hover:bg-slate-800 hover:text-indigo-400"
-                  title="Notifications"
-                >
-                  <Bell size={18} />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-900" />
-                </button>
+                {/* Notifications Popover */}
+                <NotificationPopover />
 
                 {/* Profile Dropdown */}
                 <div className="relative ml-1">
@@ -167,6 +159,20 @@ export default function Navbar() {
                           My Learning
                         </button>
 
+                        {(user.role === "instructor" || user.role === "admin") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              navigate("/instructor/dashboard");
+                            }}
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
+                          >
+                            <LayoutDashboard size={15} />
+                            Instructor Studio
+                          </button>
+                        )}
+
                         {user.role === "admin" && (
                           <button
                             type="button"
@@ -174,7 +180,7 @@ export default function Navbar() {
                               setShowProfileMenu(false);
                               navigate("/admin/dashboard");
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-purple-600 hover:bg-purple-50"
                           >
                             <LayoutDashboard size={15} />
                             Admin Panel

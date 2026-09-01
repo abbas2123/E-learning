@@ -15,6 +15,7 @@ router.get("/stats", adminController.getStats.bind(adminController));
 // ─── Users Management ────────────────────────────────────────────────────────
 router.get("/users", adminController.getUsers.bind(adminController));
 router.patch("/users/:id/block", adminController.toggleUserBlock.bind(adminController));
+router.patch("/users/:id/role", adminController.updateUserRole.bind(adminController));
 router.post("/users", adminController.createUser.bind(adminController));
 
 // ─── Courses Management ──────────────────────────────────────────────────────

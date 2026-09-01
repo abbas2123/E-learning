@@ -5,8 +5,31 @@ import { Logger } from "./core/logger/Logger.js";
 const PORT = process.env.PORT ?? 3000;
 const MONGO_URI = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
 
+function validateProductionEnv() {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (!isProduction) return;
+
+  const requiredVars = [
+    "MONGODB_URI",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
+    "CLIENT_URL",
+  ];
+
+  const missing = requiredVars.filter((v) => !process.env[v]);
+  if (missing.length > 0) {
+    throw new Error(
+      `FATAL: Missing required production environment variables: ${missing.join(", ")}. Cannot start in production without explicit configuration.`,
+    );
+  }
+}
+
 async function bootstrap() {
   try {
+    validateProductionEnv();
+
     if (!MONGO_URI) {
       throw new Error("MONGODB_URI is not defined in environment variables.");
     }

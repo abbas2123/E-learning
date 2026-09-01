@@ -24,7 +24,32 @@ export interface PublicVerificationData {
   status: string;
 }
 
+export interface CertificateStatusData {
+  eligible: boolean;
+  certificate: CertificateData | null;
+  progress: {
+    completedLessons: number;
+    totalLessons: number;
+    completedQuizzes: number;
+    totalQuizzes: number;
+    progressPercentage: number;
+  };
+  score: {
+    current: number;
+    required: number;
+    passed: boolean;
+  };
+  reasons: string[];
+}
+
 export const certificateService = {
+  async getCertificateStatus(courseId: string): Promise<CertificateStatusData> {
+    const res = await apiClient.get<{ success: boolean; data: CertificateStatusData }>(
+      `/api/certificates/courses/${courseId}/status`,
+    );
+    return res.data.data;
+  },
+
   async generateCertificate(courseId: string): Promise<CertificateData> {
     const res = await apiClient.post<{ success: boolean; data: CertificateData }>(
       "/api/certificates/generate",

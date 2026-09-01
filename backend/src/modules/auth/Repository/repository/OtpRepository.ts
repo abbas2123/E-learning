@@ -3,7 +3,6 @@ import { OtpModel } from "../database/Otp";
 
 export class OtpRepository implements IOtpRepository {
   async saveOtp(email: string, otp: string, expiresAt: Date): Promise<void> {
-    console.log("otp", otp, "email", email, "expaire", expiresAt);
     await OtpModel.findOneAndUpdate(
       { email: email.toLowerCase() },
       { email: email.toLowerCase(), otp, expiresAt },

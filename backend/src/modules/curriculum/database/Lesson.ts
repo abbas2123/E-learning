@@ -48,6 +48,16 @@ const LessonSchema = new Schema(
       default: null,
       trim: true,
     },
+    videoSourceType: {
+      type: String,
+      enum: ["uploaded", "youtube", "vimeo", "external", "hls", null],
+      default: null,
+    },
+    quizId: {
+      type: String,
+      default: null,
+      index: true,
+    },
     duration: {
       type: Number,
       default: 0,
@@ -74,5 +84,6 @@ const LessonSchema = new Schema(
 );
 
 LessonSchema.index({ sectionId: 1, order: 1 });
+LessonSchema.index({ quizId: 1 }, { sparse: true });
 
 export const LessonModel = model("Lesson", LessonSchema);

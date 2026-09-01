@@ -22,6 +22,8 @@ import certificateRoutes from "./modules/certificate/routes/certificateRoutes.js
 import quizRoutes from "./modules/quiz/routes/quizRoutes.js";
 import instructorRoutes from "./modules/instructor/routes/instructorRoutes.js";
 import discussionRoutes from "./modules/discussion/routes/discussionRoutes.js";
+import notificationRoutes from "./modules/notification/routes/notification.routes.js";
+import categoryRoutes from "./modules/category/routes/category.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -34,11 +36,34 @@ app.use(
   }),
 );
 
-// CORS configuration
+// CORS configuration supporting single/multi origins and local dev ports
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(",").map((url) => url.trim())
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"];
+
+const isDev = process.env.NODE_ENV !== "production";
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // In production: strict match against allowedOrigins. In development: allow localhost regex
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-request-id"],
+    exposedHeaders: ["x-request-id"],
   }),
 );
 
@@ -73,6 +98,8 @@ app.use("/api", progressRoutes);
 app.use("/api", certificateRoutes);
 app.use("/api", quizRoutes);
 app.use("/api", discussionRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Global error handler — must be last
 app.use(errorHandler);

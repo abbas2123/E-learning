@@ -47,6 +47,16 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
   const [explanation, setExplanation] = useState("");
   const [savingQuestion, setSavingQuestion] = useState(false);
 
+  const selectQuiz = useCallback(async (quizId: string) => {
+    try {
+      const res = await quizService.getQuiz(quizId);
+      setSelectedQuiz(res.quiz);
+      setQuestions(res.questions || []);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load quiz details.");
+    }
+  }, []);
+
   const fetchQuizzes = useCallback(async () => {
     setLoading(true);
     try {
@@ -60,21 +70,11 @@ export function QuizBuilder({ courseId }: QuizBuilderProps) {
     } finally {
       setLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, selectedQuiz, selectQuiz]);
 
   useEffect(() => {
     fetchQuizzes();
   }, [fetchQuizzes]);
-
-  const selectQuiz = async (quizId: string) => {
-    try {
-      const res = await quizService.getQuiz(quizId);
-      setSelectedQuiz(res.quiz);
-      setQuestions(res.questions || []);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load quiz details.");
-    }
-  };
 
   const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getCoursesId, getCourseCurriculum } from "../../course/service/courseService";
+import quizService from "../../quiz/service/quizService";
+import type { Quiz } from "../../quiz/types/quiz.types";
 import type { Course, CourseSection, Lesson, LessonResource } from "../../course/types/course.types";
 import progressService, { type CourseProgressSummaryData } from "../../../services/progressService";
-import certificateService from "../../../services/certificateService";
+import certificateService, { type CertificateStatusData } from "../../../services/certificateService";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "sonner";
 import {
@@ -12,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  FileText,
   Loader2,
   Check,
   Lock,
@@ -25,11 +26,17 @@ import {
   Award,
   FileCheck,
   MessageSquare,
+  HelpCircle,
+  Send,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { ProgressBar } from "../../../components/ui/ProgressBar";
 import { Badge } from "../../../components/ui/Badge";
 import { QuizPlayer } from "../../quiz/components/QuizPlayer";
 import { LessonDiscussionTab } from "../../discussion/components/LessonDiscussionTab";
+import { VideoPlayer } from "../../../components/video/VideoPlayer";
 
 export default function LearningPlayerScreen() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -39,6 +46,8 @@ export default function LearningPlayerScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   const [sections, setSections] = useState<CourseSection[]>([]);
   const [progressSummary, setProgressSummary] = useState<CourseProgressSummaryData | null>(null);
+  const [certStatus, setCertStatus] = useState<CertificateStatusData | null>(null);
+  const [generatingCert, setGeneratingCert] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +57,12 @@ export default function LearningPlayerScreen() {
   const [markingComplete, setMarkingComplete] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [resumePrompt, setResumePrompt] = useState<{ seconds: number } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "qa">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "qa" | "certificate">("overview");
+
+  // Assignment submission state
+  const [assignmentNotes, setAssignmentNotes] = useState("");
+  const [submittingAssignment, setSubmittingAssignment] = useState(false);
+  const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -58,13 +72,45 @@ export default function LearningPlayerScreen() {
 
     async function initWorkspace() {
       try {
-        const [courseData, curriculumSections] = await Promise.all([
+        const [courseData, curriculumSections, courseQuizzes] = await Promise.all([
           getCoursesId(courseId!),
           getCourseCurriculum(courseId!).catch(() => []),
+          quizService.getCourseQuizzes(courseId!).catch(() => []),
         ]);
 
         setCourse(courseData);
-        setSections(curriculumSections || []);
+
+        // Merge standalone quizzes created in Quiz tab into curriculum
+        let mergedSections: CourseSection[] = [...(curriculumSections || [])];
+        const existingLessonIds = new Set(
+          mergedSections.flatMap((s) => (s.lessons || []).map((l) => l.id)),
+        );
+
+        const unlinkedQuizzes = (courseQuizzes || []).filter(
+          (q: Quiz) => !existingLessonIds.has(q.id) && (!q.lessonId || !existingLessonIds.has(q.lessonId)),
+        );
+
+        if (unlinkedQuizzes.length > 0) {
+          mergedSections.push({
+            id: "sec-assessments",
+            courseId: courseId!,
+            title: "Course Assessments & Quizzes",
+            order: 999,
+            position: 999,
+            lessons: unlinkedQuizzes.map((q: Quiz, idx: number) => ({
+              id: q.id,
+              sectionId: "sec-assessments",
+              title: q.title,
+              description: q.description || q.instructions || "Knowledge Assessment & Quiz",
+              type: "quiz" as const,
+              duration: q.timeLimitSeconds ? Math.ceil(q.timeLimitSeconds / 60) : 15,
+              position: idx + 1,
+              isPreview: false,
+            })),
+          });
+        }
+
+        setSections(mergedSections);
 
         // Try fetching student progress — if successful, user is enrolled!
         let isUserEnrolled = false;
@@ -83,44 +129,38 @@ export default function LearningPlayerScreen() {
         setIsEnrolled(isUserEnrolled);
         setProgressSummary(progressData);
 
+        if (isLoggedIn && isUserEnrolled) {
+          certificateService
+            .getCertificateStatus(courseId!)
+            .then(setCertStatus)
+            .catch(() => {});
+        }
+
         // Find initial active lesson
         let initialLesson: Lesson | null = null;
-        if (curriculumSections && curriculumSections.length > 0) {
+        if (mergedSections && mergedSections.length > 0) {
           // Find first uncompleted or first available lesson
           const completedSet = new Set(
             progressData?.lessons.filter((l) => l.completed).map((l) => l.lessonId) || [],
           );
 
-          for (const sec of curriculumSections) {
-            for (const les of sec.lessons) {
+          for (const sec of mergedSections) {
+            for (const les of sec.lessons || []) {
               if (!initialLesson) initialLesson = les;
               if (!completedSet.has(les.id) && (isUserEnrolled || les.isPreview)) {
                 initialLesson = les;
                 break;
               }
             }
-            if (initialLesson && !completedSet.has(initialLesson.id)) break;
+            if (initialLesson && !completedSet.has(initialLesson.id) && (isUserEnrolled || initialLesson.isPreview)) {
+              break;
+            }
           }
         }
 
-        if (initialLesson) {
-          setActiveLesson(initialLesson);
-        } else {
-          // Default fallback lesson if curriculum is empty
-          setActiveLesson({
-            id: "les-fallback-01",
-            sectionId: "sec-01",
-            title: "Course Introduction & Setup",
-            description: "Welcome to the course. Follow along with the guided lessons.",
-            type: "video",
-            videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-            duration: 10,
-            position: 1,
-            isPreview: true,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load learning workspace", err);
+        setActiveLesson(initialLesson || mergedSections[0]?.lessons?.[0] || null);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load course player workspace.");
       } finally {
         setLoading(false);
       }
@@ -160,8 +200,12 @@ export default function LearningPlayerScreen() {
   const refreshProgress = async () => {
     if (!courseId || !isLoggedIn) return;
     try {
-      const updated = await progressService.getCourseProgress(courseId);
-      setProgressSummary(updated);
+      const [updatedProgress, updatedCert] = await Promise.all([
+        progressService.getCourseProgress(courseId).catch(() => null),
+        certificateService.getCertificateStatus(courseId).catch(() => null),
+      ]);
+      if (updatedProgress) setProgressSummary(updatedProgress);
+      if (updatedCert) setCertStatus(updatedCert);
     } catch {
       // Ignore background refresh errors
     }
@@ -181,20 +225,6 @@ export default function LearningPlayerScreen() {
       toast.error(err.message || "Failed to mark lesson complete.");
     } finally {
       setMarkingComplete(false);
-    }
-  };
-
-  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (!courseId || !activeLesson || !isLoggedIn || !isEnrolled) return;
-    const currentTime = Math.floor(e.currentTarget.currentTime);
-    const now = Date.now();
-
-    // Throttled: Send position update every 15 seconds
-    if (now - lastUpdateRef.current > 15000 && currentTime > 0) {
-      lastUpdateRef.current = now;
-      progressService
-        .updateLessonProgress(courseId, activeLesson.id, currentTime)
-        .catch(() => {});
     }
   };
 
@@ -352,45 +382,147 @@ export default function LearningPlayerScreen() {
                 </button>
               </div>
             ) : activeLesson?.type === "video" && activeLesson.videoUrl ? (
-              <video
-                ref={videoRef}
-                src={activeLesson.videoUrl}
-                controls
-                onTimeUpdate={handleTimeUpdate}
+              <VideoPlayer
+                url={activeLesson.videoUrl}
+                sourceType={activeLesson.videoSourceType}
+                title={activeLesson.title}
+                onTimeUpdate={(currentTime) => {
+                  if (!courseId || !activeLesson || !isLoggedIn || !isEnrolled) return;
+                  const sec = Math.floor(currentTime);
+                  const now = Date.now();
+                  if (now - lastUpdateRef.current > 15000 && sec > 0) {
+                    lastUpdateRef.current = now;
+                    progressService
+                      .updateLessonProgress(courseId, activeLesson.id, sec)
+                      .catch(() => {});
+                  }
+                }}
                 onEnded={handleVideoEnded}
-                className="h-full w-full object-contain"
+                className="h-full w-full"
               />
             ) : activeLesson?.type === "quiz" ? (
-              <div className="p-4 md:p-6 overflow-y-auto max-h-full">
+              <div className="p-4 md:p-6 overflow-y-auto max-h-full w-full">
                 <QuizPlayer
+                  quizId={activeLesson.quizId || activeLesson.id}
                   courseId={courseId!}
                   lessonId={activeLesson.id}
                   onComplete={refreshProgress}
                 />
               </div>
             ) : activeLesson?.type === "assignment" ? (
-              <div className="p-8 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                  <FileCheck size={28} />
+              <div className="p-6 md:p-10 overflow-y-auto max-h-full w-full max-w-3xl mx-auto">
+                <div className="rounded-2xl border border-indigo-500/30 bg-slate-900/90 p-6 md:p-8 shadow-2xl backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <FileCheck size={24} />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                        Practical Assignment
+                      </span>
+                      <h3 className="text-xl font-bold text-white">
+                        {activeLesson.title}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-800 pt-6">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Assignment Brief & Instructions
+                    </h4>
+                    <p className="mt-2 text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                      {activeLesson.description ||
+                        "Review the course principles covered so far and implement the requested tasks. Document your findings or solution below."}
+                    </p>
+                  </div>
+
+                  {/* Submission Box */}
+                  <div className="mt-6 border-t border-slate-800 pt-6">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Your Solution / Implementation Notes
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={assignmentNotes}
+                      onChange={(e) => setAssignmentNotes(e.target.value)}
+                      placeholder="Paste your GitHub repository link, implementation notes, or solution summary..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <p className="text-[11px] text-slate-400">
+                        {assignmentSubmitted
+                          ? "✓ Assignment submitted successfully."
+                          : "Save your submission notes and mark as completed."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!assignmentNotes.trim()) {
+                            toast.error("Please enter your assignment solution notes first.");
+                            return;
+                          }
+                          setSubmittingAssignment(true);
+                          try {
+                            await handleMarkComplete();
+                            setAssignmentSubmitted(true);
+                            toast.success("Assignment submitted and marked complete! 🎉");
+                          } catch (err: any) {
+                            toast.error(err.message || "Failed to submit assignment.");
+                          } finally {
+                            setSubmittingAssignment(false);
+                          }
+                        }}
+                        disabled={submittingAssignment}
+                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {submittingAssignment ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Send size={14} />
+                        )}
+                        {assignmentSubmitted ? "Update Submission" : "Submit Assignment"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="mt-4 text-lg font-extrabold text-white">
-                  Practical Assignment
-                </h3>
-                <p className="mt-1 text-xs text-slate-400 max-w-md mx-auto">
-                  Complete the exercise guidelines and submit your implementation notes.
-                </p>
               </div>
             ) : (
-              <div className="p-8 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                  <BookOpen size={28} />
+              <div className="p-6 md:p-10 overflow-y-auto max-h-full w-full max-w-3xl mx-auto">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 md:p-8 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                      <BookOpen size={24} />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
+                        Reading & Reference Module
+                      </span>
+                      <h3 className="text-xl font-bold text-white">
+                        {activeLesson?.title || "Module Reader"}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-800 pt-6">
+                    <div className="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed whitespace-pre-line">
+                      {activeLesson?.description ||
+                        "Read through the core concepts, architectural diagrams, and recommended best practices for this module."}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleMarkComplete}
+                      disabled={markingComplete || isCurrentCompleted}
+                      className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {isCurrentCompleted ? <Check size={15} /> : <CheckCircle size={15} />}
+                      {isCurrentCompleted ? "Reading Completed" : "Mark Reading as Done"}
+                    </button>
+                  </div>
                 </div>
-                <h3 className="mt-4 text-lg font-extrabold text-white">
-                  Reading Module
-                </h3>
-                <p className="mt-1 text-xs text-slate-400 max-w-md mx-auto">
-                  {activeLesson?.description || "Read through the module guidelines carefully."}
-                </p>
               </div>
             )}
           </div>
@@ -400,7 +532,7 @@ export default function LearningPlayerScreen() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-white">
-                  {activeLesson?.title || "Select a lesson"}
+                  {activeLesson?.title || "Select an item"}
                 </h2>
                 {activeLesson?.isPreview && (
                   <Badge variant="emerald" size="sm">
@@ -409,7 +541,7 @@ export default function LearningPlayerScreen() {
                 )}
               </div>
               <p className="mt-1 text-xs text-slate-400">
-                Duration: {activeLesson?.duration || 10} minutes • Category: {course?.category}
+                Type: {activeLesson?.type === "quiz" ? "Assessment Quiz" : activeLesson?.type === "assignment" ? "Practical Exercise" : activeLesson?.type === "text" ? "Reading Guide" : "Video Lecture"} • Duration: {activeLesson?.duration || 10} minutes
               </p>
             </div>
 
@@ -459,7 +591,7 @@ export default function LearningPlayerScreen() {
             </div>
           </div>
 
-          {/* TAB BAR: Overview vs Q&A */}
+          {/* TAB BAR: Overview vs Q&A vs Certificate */}
           <div className="flex items-center gap-4 px-6 pt-4 border-b border-slate-800 bg-slate-900/80">
             <button
               onClick={() => setActiveTab("overview")}
@@ -483,6 +615,26 @@ export default function LearningPlayerScreen() {
               <MessageSquare size={16} />
               Q&A & Discussions
             </button>
+            <button
+              onClick={() => setActiveTab("certificate")}
+              className={`flex items-center gap-2 pb-3 text-xs font-bold transition border-b-2 ${
+                activeTab === "certificate"
+                  ? "border-amber-500 text-amber-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Award size={16} />
+              Certificate
+              {certStatus?.eligible || certStatus?.certificate ? (
+                <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+                  Unlocked
+                </span>
+              ) : (
+                <span className="rounded-md bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-750">
+                  Locked
+                </span>
+              )}
+            </button>
           </div>
 
           {/* TAB CONTENT */}
@@ -496,38 +648,200 @@ export default function LearningPlayerScreen() {
                 currentUserRole={user?.role}
               />
             </div>
-          ) : (
-            <>
-              {/* COURSE COMPLETION CONGRATULATIONS BANNER */}
-              {progressSummary?.completed && (
-                <div className="m-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center shadow-xl">
+          ) : activeTab === "certificate" ? (
+            <div className="p-6 max-w-3xl">
+              {certStatus?.eligible || certStatus?.certificate ? (
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/30 p-6 md:p-8 text-center shadow-xl space-y-5">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
                     <Award size={36} />
                   </div>
-                  <h3 className="mt-4 text-2xl font-extrabold text-white">
-                    Congratulations! You completed this course. 🎉
+                  <div>
+                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/30">
+                      🎓 Certificate Available
+                    </span>
+                    <h3 className="mt-3 text-2xl font-extrabold text-white">
+                      Congratulations! You have completed this course.
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
+                      You have met all lesson and assessment requirements with a qualifying course score.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto py-2">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-center">
+                      <span className="text-[11px] text-slate-400 block font-medium">Your Score</span>
+                      <span className="text-xl font-black text-emerald-400">{certStatus.score.current}%</span>
+                    </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-center">
+                      <span className="text-[11px] text-slate-400 block font-medium">Required</span>
+                      <span className="text-xl font-black text-white">{certStatus.score.required}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    {certStatus.certificate ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/certificates/verify/${certStatus.certificate!.certificateId}`)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-600"
+                        >
+                          <Award size={15} />
+                          View Verified Certificate
+                        </button>
+                        <a
+                          href={certificateService.getDownloadUrl(certStatus.certificate.certificateId)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-slate-900 px-5 py-2.5 text-xs font-bold text-emerald-400 transition hover:bg-slate-800"
+                        >
+                          <Download size={15} />
+                          Download PDF
+                        </a>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={generatingCert}
+                        onClick={async () => {
+                          if (!courseId) return;
+                          setGeneratingCert(true);
+                          try {
+                            toast.loading("Generating your verified certificate...", { id: "cert-gen" });
+                            const cert = await certificateService.generateCertificate(courseId);
+                            toast.success("Certificate generated successfully! 🎉", { id: "cert-gen" });
+                            await refreshProgress();
+                            navigate(`/certificates/verify/${cert.certificateId}`);
+                          } catch (err: any) {
+                            toast.error(err.message || "Failed to generate certificate.", { id: "cert-gen" });
+                          } finally {
+                            setGeneratingCert(false);
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-xs font-bold text-white shadow-md transition hover:bg-emerald-600 disabled:opacity-50"
+                      >
+                        {generatingCert ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                        Issue Verified Certificate Now
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 md:p-8 space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <Lock size={24} />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">
+                          Course Certification
+                        </span>
+                        <h3 className="text-xl font-bold text-white">Certificate Locked</h3>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-400 border border-slate-700">
+                      In Progress
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Complete all course lessons, watch required video lectures, and achieve the minimum passing score on assessments to unlock your certificate.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-400">Lessons</span>
+                        {certStatus && certStatus.progress.completedLessons >= certStatus.progress.totalLessons ? (
+                          <CheckCircle2 size={15} className="text-emerald-400" />
+                        ) : (
+                          <XCircle size={15} className="text-slate-500" />
+                        )}
+                      </div>
+                      <span className="text-lg font-bold text-white">
+                        {certStatus?.progress.completedLessons ?? 0} / {certStatus?.progress.totalLessons ?? 0}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-400">Quizzes</span>
+                        {certStatus && (certStatus.progress.totalQuizzes === 0 || certStatus.progress.completedQuizzes >= certStatus.progress.totalQuizzes) ? (
+                          <CheckCircle2 size={15} className="text-emerald-400" />
+                        ) : (
+                          <XCircle size={15} className="text-slate-500" />
+                        )}
+                      </div>
+                      <span className="text-lg font-bold text-white">
+                        {certStatus?.progress.completedQuizzes ?? 0} / {certStatus?.progress.totalQuizzes ?? 0}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-400">Current Score</span>
+                        {certStatus?.score.passed ? (
+                          <CheckCircle2 size={15} className="text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] text-amber-400 font-bold">Min {certStatus?.score.required}%</span>
+                        )}
+                      </div>
+                      <span className={`text-lg font-bold ${certStatus?.score.passed ? "text-emerald-400" : "text-amber-400"}`}>
+                        {certStatus?.score.current ?? 0}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {certStatus?.reasons && certStatus.reasons.length > 0 && (
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-2">
+                      <strong className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <AlertCircle size={14} />
+                        Remaining Requirements to Unlock:
+                      </strong>
+                      <ul className="space-y-1 text-xs text-slate-300">
+                        {certStatus.reasons.map((r, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-5 py-3 text-xs font-bold text-slate-500 border border-slate-700 cursor-not-allowed"
+                  >
+                    <Lock size={14} />
+                    Certificate Locked — Complete Requirements Above
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* COURSE COMPLETION BANNER (when eligible in Overview tab) */}
+              {(certStatus?.eligible || certStatus?.certificate) && (
+                <div className="m-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center shadow-xl">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+                    <Award size={30} />
+                  </div>
+                  <h3 className="mt-3 text-xl font-extrabold text-white">
+                    Congratulations! Course Completed 🎉
                   </h3>
-                  <p className="mt-2 text-xs text-slate-300 max-w-md mx-auto">
-                    You have mastered all modules in {course?.title}. Check your profile to view your completion certificate.
+                  <p className="mt-1 text-xs text-slate-300 max-w-md mx-auto">
+                    You have mastered all modules and assessments in {course?.title}.
                   </p>
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (!courseId) return;
-                      try {
-                        toast.loading("Generating your verified certificate...", { id: "cert-gen" });
-                        const cert = await certificateService.generateCertificate(courseId);
-                        toast.success("Certificate generated successfully! 🎉", { id: "cert-gen" });
-                        navigate(`/certificates/verify/${cert.certificateId}`);
-                      } catch (err: any) {
-                        toast.error(err.message || "Failed to generate certificate.", { id: "cert-gen" });
-                        navigate("/certificates");
-                      }
-                    }}
-                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-600"
+                    onClick={() => setActiveTab("certificate")}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-600"
                   >
-                    Get Official Certificate
                     <Sparkles size={14} />
+                    View Course Certificate
                   </button>
                 </div>
               )}
@@ -564,7 +878,7 @@ export default function LearningPlayerScreen() {
           <div className="p-4 border-b border-slate-800">
             <h3 className="font-bold text-sm text-white">Course Curriculum</h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              {progressSummary?.completedLessons ?? 0} of {progressSummary?.totalLessons ?? 0} lessons completed
+              {progressSummary?.completedLessons ?? 0} of {progressSummary?.totalLessons ?? 0} items completed
             </p>
           </div>
 
@@ -587,7 +901,7 @@ export default function LearningPlayerScreen() {
 
                     {!isCollapsed && (
                       <div className="mt-2 space-y-1">
-                        {section.lessons.map((lesson) => {
+                        {(section.lessons || []).map((lesson) => {
                           const isSelected = activeLesson?.id === lesson.id;
                           const isDone = completedSet.has(lesson.id);
                           const isItemLocked = !isEnrolled && !lesson.isPreview;
@@ -608,8 +922,12 @@ export default function LearningPlayerScreen() {
                                   <Lock size={14} className="text-slate-500 shrink-0" />
                                 ) : lesson.type === "video" ? (
                                   <PlayCircle size={14} className="shrink-0 text-indigo-400" />
+                                ) : lesson.type === "quiz" ? (
+                                  <HelpCircle size={14} className="shrink-0 text-amber-400" />
+                                ) : lesson.type === "assignment" ? (
+                                  <FileCheck size={14} className="shrink-0 text-emerald-400" />
                                 ) : (
-                                  <FileText size={14} className="shrink-0 text-amber-400" />
+                                  <BookOpen size={14} className="shrink-0 text-sky-400" />
                                 )}
                                 <span className="truncate">{lesson.title}</span>
                               </div>
@@ -661,7 +979,7 @@ export default function LearningPlayerScreen() {
                       {section.title}
                     </p>
                     <div className="space-y-1">
-                      {section.lessons.map((lesson) => {
+                      {(section.lessons || []).map((lesson) => {
                         const isSelected = activeLesson?.id === lesson.id;
                         const isDone = completedSet.has(lesson.id);
                         return (
@@ -673,10 +991,21 @@ export default function LearningPlayerScreen() {
                               setMobileDrawerOpen(false);
                             }}
                             className={`flex w-full items-center justify-between rounded-xl p-2.5 text-left text-xs font-medium ${
-                              isSelected ? "bg-indigo-600 text-white" : "text-slate-300"
+                              isSelected ? "bg-indigo-600 text-white font-bold" : "text-slate-300 hover:bg-slate-800"
                             }`}
                           >
-                            <span className="truncate">{lesson.title}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {lesson.type === "video" ? (
+                                <PlayCircle size={14} className="shrink-0 text-indigo-400" />
+                              ) : lesson.type === "quiz" ? (
+                                <HelpCircle size={14} className="shrink-0 text-amber-400" />
+                              ) : lesson.type === "assignment" ? (
+                                <FileCheck size={14} className="shrink-0 text-emerald-400" />
+                              ) : (
+                                <BookOpen size={14} className="shrink-0 text-sky-400" />
+                              )}
+                              <span className="truncate">{lesson.title}</span>
+                            </div>
                             {isDone && <CheckCircle size={14} className="text-emerald-400 shrink-0" />}
                           </button>
                         );

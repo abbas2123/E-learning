@@ -114,6 +114,12 @@ const CourseSchema = new Schema(
       type: [String],
       default: [],
     },
+    minCertificateScore: {
+      type: Number,
+      default: 70,
+      min: 0,
+      max: 100,
+    },
   },
   {
     timestamps: true,

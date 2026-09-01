@@ -17,7 +17,6 @@ export class ProfileController {
     next: NextFunction,
   ) {
     try {
-      console.log("req.body", req.body, "req.file", req.file);
       if (!req.userId) {
         return res.status(401).json({
           success: false,
@@ -36,10 +35,8 @@ export class ProfileController {
         name: req.body.name,
         location: req.body.location,
         phone: req.body.phone,
-
         avatarUrl,
       });
-      console.log("result", result);
       return res.status(200).json({
         success: true,
         user: result,

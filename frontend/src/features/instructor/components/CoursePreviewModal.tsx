@@ -1,6 +1,6 @@
 import type { InstructorCourseSummary } from "../types/instructor.types";
 import type { CourseSection } from "../../course/types/course.types";
-import { X, BookOpen, Clock, Star, Video, FileText } from "lucide-react";
+import { X, BookOpen, Clock, Star, Video, FileText, HelpCircle } from "lucide-react";
 import { CourseStatusBadge } from "./CourseStatusBadge";
 
 interface CoursePreviewModalProps {
@@ -84,24 +84,41 @@ export function CoursePreviewModal({
                   <span className="font-bold text-indigo-400">
                     Section {idx + 1}: {sec.title}
                   </span>
-                  <span className="text-slate-500">{sec.lessons?.length || 0} lessons</span>
+                  <span className="text-slate-500">{sec.lessons?.length || 0} items</span>
                 </div>
 
                 <div className="space-y-1.5 pt-2">
                   {sec.lessons?.map((les) => (
                     <div
                       key={les.id}
-                      className="flex items-center justify-between text-xs text-slate-300 p-2 rounded-lg bg-slate-900/40"
+                      className="flex items-center justify-between text-xs text-slate-300 p-2.5 rounded-lg bg-slate-900/60 border border-slate-850"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         {les.type === "video" ? (
-                          <Video size={14} className="text-indigo-400" />
+                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/20 text-indigo-400">
+                            <Video size={13} />
+                          </div>
+                        ) : les.type === "quiz" ? (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/20 text-amber-400">
+                            <HelpCircle size={13} />
+                          </div>
                         ) : (
-                          <FileText size={14} className="text-slate-400" />
+                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-800 text-slate-400">
+                            <FileText size={13} />
+                          </div>
                         )}
-                        <span>{les.title}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-white">{les.title}</span>
+                            {les.type === "quiz" && (
+                              <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/20">
+                                Quiz {les.questionCount ? `(${les.questionCount} Qs)` : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-slate-500">{les.duration}m</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{les.duration}m</span>
                     </div>
                   ))}
                 </div>

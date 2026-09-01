@@ -37,7 +37,9 @@ export class QuizRepository implements IQuizRepository {
   }
 
   async findById(quizId: string): Promise<QuizDto | null> {
-    const doc = await QuizModel.findOne({ id: quizId });
+    const doc = await QuizModel.findOne({
+      $or: [{ id: quizId }, { lessonId: quizId }],
+    });
     if (!doc) return null;
     return this.toDto(doc);
   }

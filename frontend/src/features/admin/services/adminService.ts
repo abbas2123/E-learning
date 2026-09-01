@@ -130,6 +130,11 @@ export const adminService = {
     return res.data.status;
   },
 
+  async updateUserRole(userId: string, role: "student" | "instructor" | "admin"): Promise<AdminUser> {
+    const res = await apiClient.patch<{ success: boolean; data: AdminUser }>(`/api/admin/users/${userId}/role`, { role });
+    return res.data.data;
+  },
+
   async createUser(data: { name: string; email: string; role: "student" | "instructor" | "admin" }): Promise<AdminUser> {
     const res = await apiClient.post<{ success: boolean; data: AdminUser }>("/api/admin/users", data);
     return res.data.data;

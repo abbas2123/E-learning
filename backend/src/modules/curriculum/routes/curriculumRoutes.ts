@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { createCurriculumContainer } from "../composition/curriculumContainer";
 import { authMiddleware } from "../../../middlewares/authMiddleware";
+import { optionalAuthMiddleware } from "../../../middlewares/optionalAuthMiddleware";
 
 const router = Router();
 const { controller } = createCurriculumContainer();
 
-// 1. GET /api/courses/:courseId/curriculum (Public / Student Read)
+// 1. GET /api/courses/:courseId/curriculum (Public / Student Read — optional auth for access level)
 router.get(
   "/courses/:courseId/curriculum",
+  optionalAuthMiddleware,
   (req, res, next) => controller.getCourseCurriculum(req, res, next),
 );
 
