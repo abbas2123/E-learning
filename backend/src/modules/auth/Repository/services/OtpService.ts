@@ -9,6 +9,9 @@ export class OtpService implements IOtpService {
   }
 
   async sendOtp(email: string, otp: string): Promise<void> {
-    await this.emailService.sendOtpEmail(email, otp);
+    // Dispatch in background so the user is not stalled waiting for SMTP network response
+    this.emailService.sendOtpEmail(email, otp).catch((err) => {
+      console.error(`[OTP SERVICE] Failed to send OTP email to ${email}:`, err?.message || err);
+    });
   }
 }

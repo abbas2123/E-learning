@@ -75,7 +75,7 @@ export default function StudentsScreen() {
                   {s.name}
                 </td>
                 <td className="py-4 px-6 text-xs text-slate-500">{s.email}</td>
-                <td className="py-4 px-6 font-semibold text-slate-900">{s.enrolledCoursesCount || 4} Courses</td>
+                <td className="py-4 px-6 font-semibold text-slate-900">{s.enrolledCoursesCount || 0} Courses</td>
                 <td className="py-4 px-6 text-xs text-slate-500">{s.joinedAt}</td>
                 <td className="py-4 px-6">
                   <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">

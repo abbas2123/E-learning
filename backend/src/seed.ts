@@ -10,8 +10,8 @@ import { SectionModel } from "./modules/curriculum/database/Section";
 import { LessonModel } from "./modules/curriculum/database/Lesson";
 
 async function seed() {
-  const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/totc-elearning";
-  console.log(`[Seed] Connecting to MongoDB: ${mongoUri}`);
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://localhost:27017/totc-elearning";
+  console.log("[Seed] Connecting to MongoDB database...");
 
   await mongoose.connect(mongoUri);
   console.log("[Seed] Connected successfully.");

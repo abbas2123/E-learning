@@ -81,7 +81,7 @@ export function InstructorLayout() {
               type="button"
               onClick={() => {
                 logout();
-                navigate("/login");
+                navigate("/login", { replace: true });
               }}
               title="Sign Out"
               className="rounded-lg border border-slate-800 p-2 text-slate-400 hover:border-slate-700 hover:text-rose-400 transition"

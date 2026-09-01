@@ -4,16 +4,20 @@ import { useLocation } from "react-router-dom";
 import QuickSearchModal from "./QuickSearchModal";
 import NotificationDrawer from "./NotificationDrawer";
 import { useAuth } from "../../../context/AuthContext";
+import type { useAdminNotifications } from "../hooks/useAdminNotifications";
 
 interface AdminHeaderProps {
   onOpenSidebar: () => void;
+  notificationState: ReturnType<typeof useAdminNotifications>;
 }
 
-export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
+export default function AdminHeader({ onOpenSidebar, notificationState }: AdminHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+
+  const { unreadCount } = notificationState;
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -68,7 +72,7 @@ export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
               </kbd>
             </button>
 
-            {/* Notifications Button */}
+            {/* Notifications Button — badge only shown when there are unread items */}
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -76,10 +80,18 @@ export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
                 aria-label="Notifications"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-extrabold text-white ring-2 ring-white shadow-sm">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
 
-              <NotificationDrawer isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+              <NotificationDrawer
+                isOpen={isNotifOpen}
+                onClose={() => setIsNotifOpen(false)}
+                notificationState={notificationState}
+              />
             </div>
 
             {/* Admin Profile */}

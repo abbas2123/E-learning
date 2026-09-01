@@ -21,6 +21,12 @@ export class EmailService implements IEmailService {
         port,
         secure: port === 465,
         auth: { user, pass },
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 10000,
       });
       Logger.info(`[EMAIL SERVICE] SMTP transporter initialized with host: ${host}`);
     } else {

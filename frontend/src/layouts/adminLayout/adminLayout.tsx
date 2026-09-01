@@ -1,24 +1,12 @@
 import { Outlet } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AdminSidebar from "../../features/admin/components/AdminSidebar";
 import AdminHeader from "../../features/admin/components/AdminHeader";
+import { useAdminNotifications } from "../../features/admin/hooks/useAdminNotifications";
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Prevent browser Back button from navigating back to login page while logged in as admin
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-
-    const handlePopState = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
+  const notificationState = useAdminNotifications();
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900">
@@ -28,11 +16,15 @@ const AdminLayout = () => {
       {/* Main Content Area */}
       <div className="lg:ml-64 min-h-screen flex flex-col">
         {/* Sticky Admin Header */}
-        <AdminHeader onOpenSidebar={() => setSidebarOpen(true)} />
+        <AdminHeader
+          onOpenSidebar={() => setSidebarOpen(true)}
+          notificationState={notificationState}
+        />
 
         {/* Dynamic Nested Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          {/* Pass notification state to child pages via Outlet context */}
+          <Outlet context={notificationState} />
         </main>
       </div>
     </div>

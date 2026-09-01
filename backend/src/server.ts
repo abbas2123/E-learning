@@ -1,16 +1,13 @@
+import "dotenv/config";
 import mongoose from "mongoose";
 import app from "./app.js";
 import { Logger } from "./core/logger/Logger.js";
-
-const PORT = process.env.PORT ?? 3000;
-const MONGO_URI = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
 
 function validateProductionEnv() {
   const isProduction = process.env.NODE_ENV === "production";
   if (!isProduction) return;
 
   const requiredVars = [
-    "MONGODB_URI",
     "JWT_SECRET",
     "JWT_REFRESH_SECRET",
     "RAZORPAY_KEY_ID",
@@ -18,7 +15,13 @@ function validateProductionEnv() {
     "CLIENT_URL",
   ];
 
+  const hasMongoUri = !!(process.env.MONGODB_URI || process.env.MONGO_URI);
   const missing = requiredVars.filter((v) => !process.env[v]);
+
+  if (!hasMongoUri) {
+    missing.push("MONGODB_URI / MONGO_URI");
+  }
+
   if (missing.length > 0) {
     throw new Error(
       `FATAL: Missing required production environment variables: ${missing.join(", ")}. Cannot start in production without explicit configuration.`,
@@ -30,11 +33,14 @@ async function bootstrap() {
   try {
     validateProductionEnv();
 
-    if (!MONGO_URI) {
-      throw new Error("MONGODB_URI is not defined in environment variables.");
+    const PORT = Number(process.env.PORT) || 8000;
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+    if (!mongoUri) {
+      throw new Error("MONGODB_URI (or MONGO_URI) is not defined in environment variables or .env file.");
     }
 
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(mongoUri);
     Logger.info("✅ MongoDB connected successfully");
 
     const server = app.listen(PORT, () => {

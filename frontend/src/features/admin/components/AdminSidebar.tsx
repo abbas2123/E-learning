@@ -38,17 +38,15 @@ export default function AdminSidebar({ isOpen = true, setIsOpen }: AdminSidebarP
   const navigate = useNavigate();
 
   const menuItemClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-      isActive
-        ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+      ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
     }`;
 
   const subMenuItemClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-      isActive
-        ? "bg-blue-50 text-blue-700 font-semibold"
-        : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+    `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${isActive
+      ? "bg-blue-50 text-blue-700 font-semibold"
+      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
     }`;
 
   return (
@@ -114,11 +112,10 @@ export default function AdminSidebar({ isOpen = true, setIsOpen }: AdminSidebarP
           <div>
             <button
               onClick={() => setCoursesOpen(!coursesOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                isCoursesActive && !coursesOpen
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${isCoursesActive && !coursesOpen
+                ? "bg-blue-50 text-blue-700"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
             >
               <div className="flex items-center gap-3">
                 <BookOpen className="w-5 h-5" />
@@ -160,11 +157,10 @@ export default function AdminSidebar({ isOpen = true, setIsOpen }: AdminSidebarP
           <div>
             <button
               onClick={() => setUsersOpen(!usersOpen)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                isUsersActive && !usersOpen
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${isUsersActive && !usersOpen
+                ? "bg-blue-50 text-blue-700"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
             >
               <div className="flex items-center gap-3">
                 <Users className="w-5 h-5" />
@@ -223,9 +219,9 @@ export default function AdminSidebar({ isOpen = true, setIsOpen }: AdminSidebarP
           <NavLink to="/admin/notifications" className={menuItemClass}>
             <Bell className="w-5 h-5" />
             <span>Notifications</span>
-            <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
-              3
-            </span>
+            {/* <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
+
+            </span> */}
           </NavLink>
 
           {/* Settings */}
