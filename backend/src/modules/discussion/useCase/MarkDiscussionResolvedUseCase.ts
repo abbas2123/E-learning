@@ -1,6 +1,11 @@
 import { CourseModel } from "../../course/repository/database/Course";
 import { DiscussionStatus } from "../database/Discussion";
 import type { IDiscussionRepository, DiscussionDto } from "../interface/IDiscussionRepository";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class MarkDiscussionResolvedUseCase {
   constructor(private readonly discussionRepo: IDiscussionRepository) {}
@@ -10,11 +15,14 @@ export class MarkDiscussionResolvedUseCase {
     requesterId: string,
     requesterRole: string,
   ): Promise<DiscussionDto> {
+    if (!discussionId) throw new ValidationError("Discussion ID is required.");
+    if (!requesterId) throw new ForbiddenError("Authentication required.");
+
     const discussion = await this.discussionRepo.findById(discussionId);
-    if (!discussion) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+    if (!discussion) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
 
     if (discussion.status === DiscussionStatus.LOCKED) {
-      throw Object.assign(new Error("Locked discussions cannot be modified."), { statusCode: 403 });
+      throw new ForbiddenError("Locked discussions cannot be modified.");
     }
 
     const isAdmin = requesterRole === "admin";
@@ -24,7 +32,7 @@ export class MarkDiscussionResolvedUseCase {
       const course = await CourseModel.findOne({ id: discussion.courseId }).select("createdBy");
       const isInstructor = course?.createdBy === requesterId;
       if (!isInstructor) {
-        throw Object.assign(new Error("Only the question author or instructor can resolve this discussion."), { statusCode: 403 });
+        throw new ForbiddenError("Only the question author or instructor can resolve this discussion.");
       }
     }
 
@@ -35,7 +43,8 @@ export class MarkDiscussionResolvedUseCase {
         : DiscussionStatus.RESOLVED;
 
     const updated = await this.discussionRepo.update(discussionId, { status: newStatus });
-    if (!updated) throw new Error("Failed to update discussion status.");
+    if (!updated) throw new NotFoundError("Failed to update discussion status.", "DISCUSSION_NOT_FOUND");
     return updated;
   }
 }
+

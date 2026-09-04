@@ -6,6 +6,11 @@ import type { ILessonProgressRepository } from "../../progress/interface/ILesson
 import type { IQuizRepository } from "../../quiz/interface/IQuizRepository";
 import type { IQuizAttemptRepository } from "../../quiz/interface/IQuizAttemptRepository";
 import { VIDEO_COMPLETION_THRESHOLD, DEFAULT_MIN_CERTIFICATE_SCORE } from "../../../shared/constants/courseConstants";
+import {
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface GetCertificateStatusInput {
   userId: string;
@@ -45,11 +50,11 @@ export class GetCertificateStatusUseCase {
   async execute(input: GetCertificateStatusInput): Promise<CertificateStatusResult> {
     const { userId, courseId, userRole } = input;
 
-    if (!userId) throw new Error("Authentication required.");
-    if (!courseId) throw new Error("Course ID is required.");
+    if (!userId) throw new UnauthorizedError();
+    if (!courseId) throw new ValidationError("Course ID is required.");
 
     const course: CourseSummaryDto | null = await this.courseRepository.findSummaryById(courseId);
-    if (!course) throw new Error("Course not found.");
+    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     // Check existing certificate
     const existingCert = await this.certificateRepository.findByStudentAndCourse(userId, courseId);

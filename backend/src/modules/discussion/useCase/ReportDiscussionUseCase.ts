@@ -1,6 +1,11 @@
 import type { IDiscussionReportRepository, DiscussionReportDto } from "../interface/IDiscussionReportRepository";
 import type { IDiscussionRepository } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository } from "../interface/IDiscussionReplyRepository";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class ReportDiscussionUseCase {
   constructor(
@@ -15,15 +20,19 @@ export class ReportDiscussionUseCase {
     reason: string,
     replyId?: string | null,
   ): Promise<DiscussionReportDto> {
+    if (!reportedBy) throw new ForbiddenError("Authentication required.");
+    if (!discussionId) throw new ValidationError("Discussion ID is required.");
+    if (!reason || !reason.trim()) throw new ValidationError("Report reason is required.");
+
     // Verify discussion exists
     const discussion = await this.discussionRepo.findById(discussionId);
-    if (!discussion) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+    if (!discussion) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
 
     // If reporting a reply, verify it exists and belongs to this discussion
     if (replyId) {
       const reply = await this.replyRepo.findById(replyId);
       if (!reply || reply.discussionId !== discussionId) {
-        throw Object.assign(new Error("Reply not found in this discussion."), { statusCode: 404 });
+        throw new NotFoundError("Reply not found in this discussion.", "REPLY_NOT_FOUND");
       }
     }
 
@@ -35,3 +44,4 @@ export class ReportDiscussionUseCase {
     });
   }
 }
+

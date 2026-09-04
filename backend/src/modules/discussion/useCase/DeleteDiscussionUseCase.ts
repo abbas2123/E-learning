@@ -2,6 +2,11 @@ import { CourseModel } from "../../course/repository/database/Course";
 import type { IDiscussionRepository } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository } from "../interface/IDiscussionReplyRepository";
 import type { IDiscussionReportRepository } from "../interface/IDiscussionReportRepository";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class DeleteDiscussionUseCase {
   constructor(
@@ -11,8 +16,10 @@ export class DeleteDiscussionUseCase {
   ) {}
 
   async execute(discussionId: string, requesterId: string, requesterRole: string): Promise<void> {
+    if (!discussionId) throw new ValidationError("Discussion ID is required.");
+
     const discussion = await this.discussionRepo.findById(discussionId);
-    if (!discussion) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+    if (!discussion) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
 
     const isAdmin = requesterRole === "admin";
     const isAuthor = discussion.studentId === requesterId;
@@ -22,7 +29,7 @@ export class DeleteDiscussionUseCase {
       const course = await CourseModel.findOne({ id: discussion.courseId }).select("createdBy");
       const isInstructor = course?.createdBy === requesterId;
       if (!isInstructor) {
-        throw Object.assign(new Error("You are not authorised to delete this discussion."), { statusCode: 403 });
+        throw new ForbiddenError("You are not authorised to delete this discussion.");
       }
     }
 

@@ -3,14 +3,19 @@ import type {
   SectionDto,
 } from "../interface/ISectionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface UpdateSectionInput {
   sectionId: string;
   title?: string;
   description?: string;
   order?: number;
-  userId: string;
   userRole?: string;
+  userId?: string;
 }
 
 export class UpdateSectionUseCase {
@@ -19,15 +24,15 @@ export class UpdateSectionUseCase {
   async execute(input: UpdateSectionInput): Promise<SectionDto> {
     const { sectionId, title, description, order, userRole, userId } = input;
 
-    if (!sectionId) throw new Error("Section ID is required.");
+    if (!sectionId) throw new ValidationError("Section ID is required.");
 
     const existingSection = await this.sectionRepository.findById(sectionId);
-    if (!existingSection) throw new Error("Section not found.");
+    if (!existingSection) throw new NotFoundError("Section not found.", "SECTION_NOT_FOUND");
 
     if (userRole !== "admin") {
       const course = await CourseModel.findOne({ id: existingSection.courseId });
       if (!course || (course.createdBy !== userId)) {
-        throw new Error("Unauthorized to modify this section.");
+        throw new ForbiddenError("Unauthorized to modify this section.");
       }
     }
 
@@ -37,7 +42,7 @@ export class UpdateSectionUseCase {
       order,
     });
 
-    if (!updated) throw new Error("Failed to update section.");
+    if (!updated) throw new NotFoundError("Failed to update section.", "SECTION_NOT_FOUND");
     return updated;
   }
 }

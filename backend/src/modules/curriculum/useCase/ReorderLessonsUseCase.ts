@@ -1,6 +1,11 @@
 import type { ISectionRepository, LessonDto } from "../interface/ISectionRepository";
 import type { ILessonRepository } from "../interface/ILessonRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface ReorderLessonsInput {
   sectionId: string;
@@ -18,23 +23,23 @@ export class ReorderLessonsUseCase {
   async execute(input: ReorderLessonsInput): Promise<LessonDto[]> {
     const { sectionId, orderedLessonIds, userId, userRole } = input;
 
-    if (!sectionId) throw new Error("Section ID is required.");
+    if (!sectionId) throw new ValidationError("Section ID is required.");
     if (!Array.isArray(orderedLessonIds) || orderedLessonIds.length === 0) {
-      throw new Error("orderedLessonIds array is required.");
+      throw new ValidationError("orderedLessonIds array is required.");
     }
 
     const uniqueIds = new Set(orderedLessonIds);
     if (uniqueIds.size !== orderedLessonIds.length) {
-      throw new Error("Duplicate lesson IDs detected in reorder payload.");
+      throw new ValidationError("Duplicate lesson IDs detected in reorder payload.");
     }
 
     const section = await this.sectionRepository.findById(sectionId);
-    if (!section) throw new Error("Section not found.");
+    if (!section) throw new NotFoundError("Section not found.", "SECTION_NOT_FOUND");
 
     if (userRole !== "admin") {
       const course = await CourseModel.findOne({ id: section.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to reorder lessons in this section.");
+        throw new ForbiddenError("Unauthorized to reorder lessons in this section.");
       }
     }
 
@@ -43,7 +48,7 @@ export class ReorderLessonsUseCase {
 
     for (const id of orderedLessonIds) {
       if (!existingLessonIds.has(id)) {
-        throw new Error(`Lesson with ID ${id} does not belong to section ${sectionId}.`);
+        throw new ValidationError(`Lesson with ID ${id} does not belong to section ${sectionId}.`);
       }
     }
 

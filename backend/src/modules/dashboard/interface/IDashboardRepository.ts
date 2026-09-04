@@ -46,7 +46,10 @@ export interface IDashboardRepository {
   getSummaryByUserId(userId: string): Promise<DashboardSummary>;
   getActiveCoursesByUserId(userId: string): Promise<ActiveCourse[]>;
   getCoursesCatalog(): Promise<CatalogCourse[]>;
-  enrollCourse(userId: string, courseId: string): Promise<{
+  enrollCourse(
+    userId: string,
+    courseId: string,
+  ): Promise<{
     userFound: boolean;
     courseFound: boolean;
     alreadyEnrolled: boolean;

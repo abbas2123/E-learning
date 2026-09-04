@@ -3,6 +3,11 @@ import { ReportStatus } from "../database/DiscussionReport";
 import type { IDiscussionRepository } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository } from "../interface/IDiscussionReplyRepository";
 import type { IDiscussionReportRepository } from "../interface/IDiscussionReportRepository";
+import {
+  BadRequestError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export type ModerationAction =
   | "lock"
@@ -28,23 +33,23 @@ export class ModerateDiscussionUseCase {
   ): Promise<{ success: boolean; message: string }> {
     switch (action) {
       case "lock": {
-        if (!discussionId) throw new Error("discussionId required.");
+        if (!discussionId) throw new ValidationError("discussionId required.");
         const d = await this.discussionRepo.findById(discussionId);
-        if (!d) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+        if (!d) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
         await this.discussionRepo.update(discussionId, { status: DiscussionStatus.LOCKED });
         return { success: true, message: "Discussion locked." };
       }
 
       case "unlock": {
-        if (!discussionId) throw new Error("discussionId required.");
+        if (!discussionId) throw new ValidationError("discussionId required.");
         const d = await this.discussionRepo.findById(discussionId);
-        if (!d) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+        if (!d) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
         await this.discussionRepo.update(discussionId, { status: DiscussionStatus.OPEN });
         return { success: true, message: "Discussion unlocked." };
       }
 
       case "delete_discussion": {
-        if (!discussionId) throw new Error("discussionId required.");
+        if (!discussionId) throw new ValidationError("discussionId required.");
         await Promise.all([
           this.replyRepo.deleteByDiscussionId(discussionId),
           this.reportRepo.deleteByDiscussionId(discussionId),
@@ -54,32 +59,33 @@ export class ModerateDiscussionUseCase {
       }
 
       case "delete_reply": {
-        if (!replyId || !discussionId) throw new Error("discussionId and replyId required.");
+        if (!replyId || !discussionId) throw new ValidationError("discussionId and replyId required.");
         await this.replyRepo.delete(replyId);
         await this.discussionRepo.decrementReplyCount(discussionId);
         return { success: true, message: "Reply deleted." };
       }
 
       case "review_report": {
-        if (!reportId) throw new Error("reportId required.");
+        if (!reportId) throw new ValidationError("reportId required.");
         await this.reportRepo.updateStatus(reportId, ReportStatus.REVIEWED);
         return { success: true, message: "Report marked as reviewed." };
       }
 
       case "dismiss_report": {
-        if (!reportId) throw new Error("reportId required.");
+        if (!reportId) throw new ValidationError("reportId required.");
         await this.reportRepo.updateStatus(reportId, ReportStatus.DISMISSED);
         return { success: true, message: "Report dismissed." };
       }
 
       case "action_taken": {
-        if (!reportId) throw new Error("reportId required.");
+        if (!reportId) throw new ValidationError("reportId required.");
         await this.reportRepo.updateStatus(reportId, ReportStatus.ACTION_TAKEN);
         return { success: true, message: "Report resolved with action taken." };
       }
 
       default:
-        throw Object.assign(new Error("Unknown moderation action."), { statusCode: 400 });
+        throw new BadRequestError("Unknown moderation action.");
     }
   }
 }
+

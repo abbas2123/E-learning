@@ -6,6 +6,7 @@ import type {
   CreateQuestionParams,
 } from "../interface/IQuestionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { ForbiddenError, NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export interface CreateQuestionInput {
   quizId: string;
@@ -31,22 +32,22 @@ export class CreateQuestionUseCase {
       points, explanation, userId, userRole,
     } = input;
 
-    if (!quizId) throw new Error("Quiz ID is required.");
-    if (!questionText?.trim()) throw new Error("Question text is required.");
+    if (!quizId) throw new ValidationError("Quiz ID is required.");
+    if (!questionText?.trim()) throw new ValidationError("Question text is required.");
     if (!Array.isArray(options) || options.length < 2) {
-      throw new Error("Question must have at least 2 options.");
+      throw new ValidationError("Question must have at least 2 options.");
     }
     if (!Array.isArray(correctOptionIds) || correctOptionIds.length === 0) {
-      throw new Error("At least one correct option ID is required.");
+      throw new ValidationError("At least one correct option ID is required.");
     }
 
     const quiz = await this.quizRepository.findById(quizId);
-    if (!quiz) throw new Error("Parent quiz not found.");
+    if (!quiz) throw new NotFoundError("Parent quiz not found.", "QUIZ_NOT_FOUND");
 
     if (userRole !== "admin" && quiz.createdBy !== userId) {
       const course = await CourseModel.findOne({ id: quiz.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to add questions to this quiz.");
+        throw new ForbiddenError("You are not allowed to add questions to this quiz.");
       }
     }
 
@@ -54,7 +55,7 @@ export class CreateQuestionUseCase {
     const optionIdsSet = new Set(options.map((o) => o.id));
     for (const cid of correctOptionIds) {
       if (!optionIdsSet.has(cid)) {
-        throw new Error(`Correct option ID '${cid}' does not match any provided option.`);
+        throw new ValidationError("Each correct option must match a provided option.");
       }
     }
 

@@ -1,5 +1,6 @@
 import type { IUserRepository } from "../../auth/interface/IUserRepository";
 import type { UpdateProfileDto } from "../dtos/UpdateProfileDto";
+import { NotFoundError } from "../../../core/errors/AppError";
 
 type updateProfileInput = UpdateProfileDto & {
   userId: string;
@@ -13,7 +14,7 @@ export class UpdateProfileUseCase {
     const user = await this.userRepository.findById(input.userId);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found", "USER_NOT_FOUND");
     }
 
     user.updateProfile(

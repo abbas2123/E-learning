@@ -1,4 +1,5 @@
 export class AppError extends Error {
+  public readonly isAppError = true;
   public readonly statusCode: number;
   public readonly code: string;
   public readonly details: Record<string, unknown> | null;
@@ -14,6 +15,7 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
+    Object.setPrototypeOf(this, new.target.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -107,6 +109,24 @@ export class EnrollmentRequiredError extends AppError {
   }
 }
 
+export class QuizUnavailableError extends AppError {
+  constructor(message = "This quiz is not currently available.") {
+    super(message, 403, "QUIZ_UNAVAILABLE");
+  }
+}
+
+export class QuizNotReadyError extends AppError {
+  constructor(message = "This quiz is not ready to be attempted.") {
+    super(message, 422, "QUIZ_NOT_READY");
+  }
+}
+
+export class AttemptLimitReachedError extends AppError {
+  constructor(message: string) {
+    super(message, 409, "ATTEMPT_LIMIT_REACHED");
+  }
+}
+
 export class PaymentError extends AppError {
   constructor(
     message = "Payment processing error",
@@ -121,3 +141,33 @@ export class MediaError extends AppError {
     super(message, 400, "MEDIA_ERROR");
   }
 }
+
+export class BadRequestError extends AppError {
+  constructor(message = "Bad request", code = "BAD_REQUEST") {
+    super(message, 400, code);
+  }
+}
+
+export class CertificateIneligibleError extends AppError {
+  public readonly reasons: string[];
+
+  constructor(
+    message = "Course completion requirements have not been met.",
+    reasons: string[] = [],
+  ) {
+    super(
+      message,
+      400,
+      "CERTIFICATE_INELIGIBLE",
+      reasons.length > 0 ? { reasons } : null,
+    );
+    this.reasons = reasons;
+  }
+}
+
+export class LessonIncompleteError extends AppError {
+  constructor(message = "Lesson has not been completed.") {
+    super(message, 400, "LESSON_INCOMPLETE");
+  }
+}
+

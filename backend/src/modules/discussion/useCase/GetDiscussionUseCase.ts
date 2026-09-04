@@ -1,5 +1,6 @@
 import type { IDiscussionRepository, DiscussionDto } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository, DiscussionReplyDto } from "../interface/IDiscussionReplyRepository";
+import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export class GetDiscussionUseCase {
   constructor(
@@ -8,11 +9,14 @@ export class GetDiscussionUseCase {
   ) {}
 
   async execute(discussionId: string): Promise<{ discussion: DiscussionDto; replies: DiscussionReplyDto[] }> {
+    if (!discussionId) throw new ValidationError("Discussion ID is required.");
+
     const discussion = await this.discussionRepo.findById(discussionId);
-    if (!discussion) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+    if (!discussion) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
 
     const replies = await this.replyRepo.findByDiscussionId(discussionId);
 
     return { discussion, replies };
   }
 }
+

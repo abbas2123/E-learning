@@ -1,6 +1,11 @@
 import type { ISectionRepository, LessonDto } from "../interface/ISectionRepository";
 import type { ILessonRepository } from "../interface/ILessonRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface CreateLessonInput {
   sectionId: string;
@@ -35,16 +40,16 @@ export class CreateLessonUseCase {
       userRole,
     } = input;
 
-    if (!sectionId) throw new Error("Section ID is required.");
-    if (!title || !title.trim()) throw new Error("Lesson title is required.");
+    if (!sectionId) throw new ValidationError("Section ID is required.");
+    if (!title || !title.trim()) throw new ValidationError("Lesson title is required.");
 
     const section = await this.sectionRepository.findById(sectionId);
-    if (!section) throw new Error("Parent section not found.");
+    if (!section) throw new NotFoundError("Parent section not found.", "SECTION_NOT_FOUND");
 
     if (userRole !== "admin") {
       const course = await CourseModel.findOne({ id: section.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to add lessons to this section.");
+        throw new ForbiddenError("Unauthorized to add lessons to this section.");
       }
     }
 

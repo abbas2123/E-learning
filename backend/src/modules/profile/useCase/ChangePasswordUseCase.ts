@@ -1,6 +1,7 @@
 import { IUserRepository } from "../../auth/interface/IUserRepository";
 import { IPasswordService } from "../../auth/interface/IPasswordService";
 import { ChnagepasswordDto } from "../dtos/ChangePasswordDto";
+import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 type changePasswordInput = ChnagepasswordDto & {
   userId: string;
@@ -18,20 +19,20 @@ export class ChangePasswordUseCase {
     const user = await this.userRepository.findById(userId);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found", "USER_NOT_FOUND");
     }
     if (user.getProvider() === "google") {
-      throw new Error(
-        "Google accounts cannoy change password beause they do not use local password.",
+      throw new ValidationError(
+        "Google accounts cannot change password because they do not use local password.",
       );
     }
 
     if (!user.getPassword()) {
-      throw new Error("This account does not have password");
+      throw new ValidationError("This account does not have password");
     }
 
     if (newPassword !== confirmPassword) {
-      throw new Error("New Password do not match");
+      throw new ValidationError("New Password do not match");
     }
 
     const isCurrentPasswordValid = await this.passwordService.compare(
@@ -40,7 +41,7 @@ export class ChangePasswordUseCase {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new Error("Current password is incorrect");
+      throw new ValidationError("Current password is incorrect");
     }
 
     const hashedPassword = await this.passwordService.hash(newPassword);

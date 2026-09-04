@@ -2,6 +2,7 @@ import type { IQuizRepository, QuizDto } from "../interface/IQuizRepository";
 import type { IQuestionRepository, QuestionWithAnswersDto } from "../interface/IQuestionRepository";
 import type { IQuizAttemptRepository, QuizAttemptDto } from "../interface/IQuizAttemptRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from "../../../core/errors/AppError";
 
 export interface GetQuizResultInput {
   attemptId: string;
@@ -25,14 +26,14 @@ export class GetQuizResultUseCase {
   async execute(input: GetQuizResultInput): Promise<QuizResultResponse> {
     const { attemptId, userId, userRole } = input;
 
-    if (!attemptId) throw new Error("Attempt ID is required.");
-    if (!userId) throw new Error("User ID is required.");
+    if (!attemptId) throw new ValidationError("Attempt ID is required.");
+    if (!userId) throw new UnauthorizedError();
 
     const attempt = await this.attemptRepository.findById(attemptId);
-    if (!attempt) throw new Error("Quiz attempt not found.");
+    if (!attempt) throw new NotFoundError("Quiz attempt not found.", "QUIZ_ATTEMPT_NOT_FOUND");
 
     const quiz = await this.quizRepository.findById(attempt.quizId);
-    if (!quiz) throw new Error("Quiz not found.");
+    if (!quiz) throw new NotFoundError("Quiz not found.", "QUIZ_NOT_FOUND");
 
     const isOwnerOrAdmin =
       userRole === "admin" || quiz.createdBy === userId;
@@ -40,12 +41,12 @@ export class GetQuizResultUseCase {
     if (!isOwnerOrAdmin && attempt.studentId !== userId) {
       const course = await CourseModel.findOne({ id: quiz.courseId });
       if (course?.createdBy !== userId) {
-        throw new Error("Unauthorized to view this attempt result.");
+        throw new ForbiddenError("You are not allowed to view this attempt result.");
       }
     }
 
     if (attempt.status === "in_progress") {
-      throw new Error("Attempt is still in progress. Submit it first to see results.");
+      throw new ConflictError("Attempt is still in progress. Submit it first to see results.", "RESOURCE_CONFLICT");
     }
 
     // Include explanations & correctOptionIds ONLY for submitted/expired attempt results

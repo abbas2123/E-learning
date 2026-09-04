@@ -1,21 +1,27 @@
 import { CertificateModel } from "../database/Certificate";
 import type { CertificateDto } from "../interface/ICertificateRepository";
+import {
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class RevokeCertificateUseCase {
   async execute(certificateId: string, adminUserId: string): Promise<CertificateDto> {
-    if (!certificateId) throw new Error("Certificate ID is required.");
-    if (!adminUserId) throw new Error("Admin user ID is required.");
+    if (!certificateId) throw new ValidationError("Certificate ID is required.");
+    if (!adminUserId) throw new UnauthorizedError("Admin user ID is required.");
 
     const cert = await CertificateModel.findOne({
       $or: [{ id: certificateId }, { certificateId }],
     });
 
     if (!cert) {
-      throw Object.assign(new Error("Certificate not found."), { statusCode: 404 });
+      throw new NotFoundError("Certificate not found.", "CERTIFICATE_NOT_FOUND");
     }
 
     if (cert.status === "revoked") {
-      throw Object.assign(new Error("Certificate is already revoked."), { statusCode: 400 });
+      throw new ConflictError("Certificate is already revoked.", "CERTIFICATE_ALREADY_REVOKED");
     }
 
     cert.status = "revoked";

@@ -3,8 +3,10 @@ import type {
   IQuestionRepository,
   QuestionDto,
 } from "../interface/IQuestionRepository";
+import type { ICourseRepository } from "../../course/interface/ICourseRepository";
 import { CourseModel } from "../../course/repository/database/Course";
-import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
+import { NotFoundError, QuizUnavailableError, ValidationError } from "../../../core/errors/AppError";
+import mongoose from "mongoose";
 
 export interface GetQuizInput {
   quizId: string;
@@ -23,6 +25,7 @@ export class GetQuizUseCase {
   constructor(
     private readonly quizRepository: IQuizRepository,
     private readonly questionRepository: IQuestionRepository,
+    private readonly courseRepository?: ICourseRepository,
   ) {}
 
   async execute(input: GetQuizInput): Promise<QuizWithQuestionsResponse> {
@@ -37,9 +40,18 @@ export class GetQuizUseCase {
       userRole === "admin" || (userId && quiz.createdBy === userId);
 
     if (!quiz.isPublished && !isOwnerOrAdmin) {
-      const course = await CourseModel.findOne({ id: quiz.courseId });
-      if (!course || course.createdBy !== userId) {
-        throw new Error("Quiz is not available.");
+      if (this.courseRepository) {
+        const course = await this.courseRepository.findSummaryById(quiz.courseId);
+        if (!course || course.createdBy !== userId) {
+          throw new QuizUnavailableError();
+        }
+      } else if (mongoose.connection.readyState === 1) {
+        const course = await CourseModel.findOne({ id: quiz.courseId });
+        if (!course || course.createdBy !== userId) {
+          throw new QuizUnavailableError();
+        }
+      } else {
+        throw new QuizUnavailableError();
       }
     }
 

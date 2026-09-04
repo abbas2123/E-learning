@@ -4,6 +4,11 @@ import { NotificationModel } from "../../admin/Repository/database/Notification"
 import { DiscussionStatus } from "../database/Discussion";
 import type { IDiscussionRepository } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository, DiscussionReplyDto } from "../interface/IDiscussionReplyRepository";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class CreateDiscussionReplyUseCase {
   constructor(
@@ -17,11 +22,15 @@ export class CreateDiscussionReplyUseCase {
     authorRole: string,
     content: string,
   ): Promise<DiscussionReplyDto> {
+    if (!discussionId) throw new ValidationError("Discussion ID is required.");
+    if (!authorId) throw new ForbiddenError("Authentication required.");
+    if (!content || !content.trim()) throw new ValidationError("Reply content cannot be empty.");
+
     const discussion = await this.discussionRepo.findById(discussionId);
-    if (!discussion) throw Object.assign(new Error("Discussion not found."), { statusCode: 404 });
+    if (!discussion) throw new NotFoundError("Discussion not found.", "DISCUSSION_NOT_FOUND");
 
     if (discussion.status === DiscussionStatus.LOCKED) {
-      throw Object.assign(new Error("This discussion is locked and cannot receive new replies."), { statusCode: 403 });
+      throw new ForbiddenError("This discussion is locked and cannot receive new replies.");
     }
 
     // Validate instructor owns course if role is instructor
@@ -29,7 +38,7 @@ export class CreateDiscussionReplyUseCase {
     if (authorRole === "instructor") {
       const course = await CourseModel.findOne({ id: discussion.courseId }).select("createdBy");
       if (!course || course.createdBy !== authorId) {
-        throw Object.assign(new Error("You are not the instructor for this course."), { statusCode: 403 });
+        throw new ForbiddenError("You are not the instructor for this course.");
       }
     }
 

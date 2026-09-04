@@ -19,18 +19,19 @@ export interface GetCourseProgressInput {
 }
 
 export class GetCourseProgressUseCase {
-  constructor(
-    private readonly progressRepository: ILessonProgressRepository,
-  ) {}
+  constructor(private readonly progressRepository: ILessonProgressRepository) {}
 
-  async execute(input: GetCourseProgressInput): Promise<CourseProgressSummaryDto> {
+  async execute(
+    input: GetCourseProgressInput,
+  ): Promise<CourseProgressSummaryDto> {
     const { userId, courseId, userRole } = input;
 
     if (!userId) throw new UnauthorizedError();
     if (!courseId) throw new ValidationError("Course ID is required.");
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
+    if (!course)
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     if (userRole !== "admin" && course.createdBy !== userId) {
       const enrollment = await EnrollmentModel.findOne({
@@ -39,18 +40,25 @@ export class GetCourseProgressUseCase {
         status: "completed",
       });
       if (!enrollment) {
-        throw new EnrollmentRequiredError("Active enrollment is required to view course progress.");
+        throw new EnrollmentRequiredError(
+          "Active enrollment is required to view course progress.",
+        );
       }
     }
 
     // 1 Query for all lessons in this course
-    const lessons = await LessonModel.find({ courseId }).select("id order title").sort({ order: 1 });
+    const lessons = await LessonModel.find({ courseId })
+      .select("id order title")
+      .sort({ order: 1 });
     const totalLessons = lessons.length;
 
     // 1 Query for all progress records of this student in this course
-    const progressRecords = await this.progressRepository.findByCourse(userId, courseId);
+    const progressRecords = await this.progressRepository.findByCourse(
+      userId,
+      courseId,
+    );
 
-    const progressMap = new Map<string, typeof progressRecords[0]>();
+    const progressMap = new Map<string, (typeof progressRecords)[0]>();
     for (const record of progressRecords) {
       progressMap.set(record.lessonId, record);
     }
@@ -70,9 +78,12 @@ export class GetCourseProgressUseCase {
     });
 
     const progressPercentage =
-      totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0;
 
-    const isCourseCompleted = totalLessons > 0 && completedLessons === totalLessons;
+    const isCourseCompleted =
+      totalLessons > 0 && completedLessons === totalLessons;
 
     return {
       courseId,

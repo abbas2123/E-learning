@@ -1,6 +1,13 @@
 import type { IReviewRepository, ReviewDto } from "../interface/IReviewRepository";
 import { UserModel } from "../../auth/Repository/database/User";
 import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface CreateReviewInput {
   userId: string;
@@ -15,15 +22,15 @@ export class CreateReviewUseCase {
   async execute(input: CreateReviewInput): Promise<ReviewDto> {
     const { userId, courseId, rating, comment } = input;
 
-    if (!userId) throw new Error("Authenticated user required.");
-    if (!courseId) throw new Error("Course ID required.");
-    if (!rating || rating < 1 || rating > 5) throw new Error("Rating must be between 1 and 5.");
-    if (!comment || comment.trim().length === 0) throw new Error("Review comment cannot be empty.");
+    if (!userId) throw new UnauthorizedError();
+    if (!courseId) throw new ValidationError("Course ID required.");
+    if (!rating || rating < 1 || rating > 5) throw new ValidationError("Rating must be between 1 and 5.");
+    if (!comment || comment.trim().length === 0) throw new ValidationError("Review comment cannot be empty.");
 
     const user = await UserModel.findOne({
       $or: [{ id: userId }, { email: userId }],
     });
-    if (!user) throw new Error("User not found.");
+    if (!user) throw new NotFoundError("User not found.", "USER_NOT_FOUND");
 
     // Check enrollment rule — only enrolled students can leave reviews
     const studentId = user.id || userId;
@@ -34,13 +41,13 @@ export class CreateReviewUseCase {
     });
 
     if (!isEnrolled) {
-      throw new Error("Only enrolled students can review this course.");
+      throw new ForbiddenError("Only enrolled students can review this course.");
     }
 
     // Prevent duplicate reviews
     const existing = await this.reviewRepository.getUserReviewForCourse(studentId, courseId);
     if (existing) {
-      throw new Error("You have already reviewed this course.");
+      throw new ConflictError("You have already reviewed this course.", "REVIEW_ALREADY_EXISTS");
     }
 
     return this.reviewRepository.createReview({

@@ -1,5 +1,10 @@
 import type { ISectionRepository, SectionDto } from "../interface/ISectionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface ReorderSectionsInput {
   courseId: string;
@@ -14,22 +19,22 @@ export class ReorderSectionsUseCase {
   async execute(input: ReorderSectionsInput): Promise<SectionDto[]> {
     const { courseId, orderedSectionIds, userId, userRole } = input;
 
-    if (!courseId) throw new Error("Course ID is required.");
+    if (!courseId) throw new ValidationError("Course ID is required.");
     if (!Array.isArray(orderedSectionIds) || orderedSectionIds.length === 0) {
-      throw new Error("orderedSectionIds array is required.");
+      throw new ValidationError("orderedSectionIds array is required.");
     }
 
     // Check duplicate IDs in input array
     const uniqueIds = new Set(orderedSectionIds);
     if (uniqueIds.size !== orderedSectionIds.length) {
-      throw new Error("Duplicate section IDs detected in reorder payload.");
+      throw new ValidationError("Duplicate section IDs detected in reorder payload.");
     }
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new Error("Course not found.");
+    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     if (userRole !== "admin" && course.createdBy !== userId) {
-      throw new Error("Unauthorized to reorder sections for this course.");
+      throw new ForbiddenError("Unauthorized to reorder sections for this course.");
     }
 
     const existingSections = await this.sectionRepository.findByCourseId(courseId);
@@ -37,7 +42,7 @@ export class ReorderSectionsUseCase {
 
     for (const id of orderedSectionIds) {
       if (!existingSectionIds.has(id)) {
-        throw new Error(`Section with ID ${id} does not belong to course ${courseId}.`);
+        throw new ValidationError(`Section with ID ${id} does not belong to course ${courseId}.`);
       }
     }
 

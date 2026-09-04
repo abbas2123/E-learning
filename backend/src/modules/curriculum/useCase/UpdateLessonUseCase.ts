@@ -1,6 +1,12 @@
-import type { LessonDto, LessonResourceDto } from "../interface/ISectionRepository";
+import type { LessonResourceDto } from "../interface/ISectionRepository";
 import type { ILessonRepository } from "../interface/ILessonRepository";
+import type { LessonDto } from "../interface/ISectionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface UpdateLessonInput {
   lessonId: string;
@@ -34,15 +40,15 @@ export class UpdateLessonUseCase {
       userRole,
     } = input;
 
-    if (!lessonId) throw new Error("Lesson ID is required.");
+    if (!lessonId) throw new ValidationError("Lesson ID is required.");
 
     const existingLesson = await this.lessonRepository.findById(lessonId);
-    if (!existingLesson) throw new Error("Lesson not found.");
+    if (!existingLesson) throw new NotFoundError("Lesson not found.", "LESSON_NOT_FOUND");
 
     if (userRole !== "admin") {
       const course = await CourseModel.findOne({ id: existingLesson.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to modify this lesson.");
+        throw new ForbiddenError("Unauthorized to modify this lesson.");
       }
     }
 
@@ -57,7 +63,7 @@ export class UpdateLessonUseCase {
       resources,
     });
 
-    if (!updated) throw new Error("Failed to update lesson.");
+    if (!updated) throw new NotFoundError("Failed to update lesson.", "LESSON_NOT_FOUND");
     return updated;
   }
 }

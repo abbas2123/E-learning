@@ -1,5 +1,6 @@
 import type { IQuizRepository, QuizDto, CreateQuizParams } from "../interface/IQuizRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { ForbiddenError, NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export interface CreateQuizInput {
   courseId: string;
@@ -26,17 +27,17 @@ export class CreateQuizUseCase {
       shuffleQuestions, shuffleOptions, userId, userRole,
     } = input;
 
-    if (!courseId) throw new Error("Course ID is required.");
-    if (!title?.trim()) throw new Error("Quiz title is required.");
+    if (!courseId) throw new ValidationError("Course ID is required.");
+    if (!title?.trim()) throw new ValidationError("Quiz title is required.");
     if (passingScore !== undefined && (passingScore < 0 || passingScore > 100)) {
-      throw new Error("Passing score must be between 0 and 100.");
+      throw new ValidationError("Passing score must be between 0 and 100.");
     }
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new Error("Course not found.");
+    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     if (userRole !== "admin" && course.createdBy !== userId) {
-      throw new Error("Unauthorized: only the course creator or admin can create quizzes.");
+      throw new ForbiddenError("You are not allowed to create quizzes for this course.");
     }
 
     const params: CreateQuizParams = {

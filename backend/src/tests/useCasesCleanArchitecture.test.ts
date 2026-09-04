@@ -17,6 +17,11 @@ import { User } from "../modules/auth/userEnitity/User.js";
 import { LoginUseCase } from "../modules/auth/useCase/loginUseCase.js";
 import { RefreshTokenUseCase } from "../modules/auth/useCase/refreshTokenUseCase.js";
 import { EnrollCourseUseCase } from "../modules/dashboard/useCase/EnrollCourseUseCase.js";
+import { GetQuizUseCase } from "../modules/quiz/useCase/GetQuizUseCase.js";
+import { CreateQuizUseCase } from "../modules/quiz/useCase/CreateQuizUseCase.js";
+import { SubmitQuizAttemptUseCase } from "../modules/quiz/useCase/SubmitQuizAttemptUseCase.js";
+import { GetQuizResultUseCase } from "../modules/quiz/useCase/GetQuizResultUseCase.js";
+import { StartQuizAttemptUseCase } from "../modules/quiz/useCase/StartQuizAttemptUseCase.js";
 
 // ─── Mock Repositories ────────────────────────────────────────────────────────
 
@@ -288,7 +293,9 @@ test("Progress use cases classify authentication, resources, access, relationshi
     ...createMockCourseRepo(),
     findSummaryById: async () => course,
   });
-  const lessonRepo = (lesson: any = { id: "les_1", courseId: "c_1", duration: 10, type: "video" }) => ({
+  const lessonRepo = (
+    lesson: any = { id: "les_1", courseId: "c_1", duration: 10, type: "video" },
+  ) => ({
     ...createMockLessonRepo(),
     findById: async () => lesson,
     findByQuizOrLessonId: async () => null,
@@ -303,24 +310,52 @@ test("Progress use cases classify authentication, resources, access, relationshi
     );
 
   await assert.rejects(
-    () => mark(null, null).execute({ userId: "", courseId: "c_1", lessonId: "les_1" }),
+    () =>
+      mark(null, null).execute({
+        userId: "",
+        courseId: "c_1",
+        lessonId: "les_1",
+      }),
     (error: any) => error.statusCode === 401 && error.code === "UNAUTHORIZED",
   );
   await assert.rejects(
-    () => mark(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
-    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+    () =>
+      mark(null, null).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+      }),
+    (error: any) =>
+      error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
   );
   await assert.rejects(
-    () => mark({ id: "c_1", createdBy: "owner_1" }, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "missing" }),
-    (error: any) => error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
+    () =>
+      mark({ id: "c_1", createdBy: "owner_1" }, null).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "missing",
+      }),
+    (error: any) =>
+      error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
   );
   await assert.rejects(
-    () => mark(undefined, undefined, false).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
-    (error: any) => error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
+    () =>
+      mark(undefined, undefined, false).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+      }),
+    (error: any) =>
+      error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
   );
   await assert.rejects(
-    () => mark({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "other", duration: 10, type: "video" }).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
-    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+    () =>
+      mark(
+        { id: "c_1", createdBy: "owner_1" },
+        { id: "les_1", courseId: "other", duration: 10, type: "video" },
+      ).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    (error: any) =>
+      error.statusCode === 400 && error.code === "VALIDATION_ERROR",
   );
 
   const completed = await mark(undefined, undefined).execute({
@@ -342,76 +377,163 @@ test("UpdateLessonWatchProgressUseCase: classifies invalid input, missing resour
     );
 
   await assert.rejects(
-    () => makeUseCase(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: Number.NaN }),
-    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+    () =>
+      makeUseCase(null, null).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+        watchedSeconds: Number.NaN,
+      }),
+    (error: any) =>
+      error.statusCode === 400 && error.code === "VALIDATION_ERROR",
   );
   await assert.rejects(
-    () => makeUseCase(null, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
-    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+    () =>
+      makeUseCase(null, null).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+        watchedSeconds: 1,
+      }),
+    (error: any) =>
+      error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
   );
   await assert.rejects(
-    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, null).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
-    (error: any) => error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
+    () =>
+      makeUseCase({ id: "c_1", createdBy: "owner_1" }, null).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+        watchedSeconds: 1,
+      }),
+    (error: any) =>
+      error.statusCode === 404 && error.code === "LESSON_NOT_FOUND",
   );
   await assert.rejects(
-    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "other", duration: 10 }, true).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
-    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+    () =>
+      makeUseCase(
+        { id: "c_1", createdBy: "owner_1" },
+        { id: "les_1", courseId: "other", duration: 10 },
+        true,
+      ).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+        watchedSeconds: 1,
+      }),
+    (error: any) =>
+      error.statusCode === 400 && error.code === "VALIDATION_ERROR",
   );
   await assert.rejects(
-    () => makeUseCase({ id: "c_1", createdBy: "owner_1" }, { id: "les_1", courseId: "c_1", duration: 10 }, false).execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1", watchedSeconds: 1 }),
-    (error: any) => error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
+    () =>
+      makeUseCase(
+        { id: "c_1", createdBy: "owner_1" },
+        { id: "les_1", courseId: "c_1", duration: 10 },
+        false,
+      ).execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+        watchedSeconds: 1,
+      }),
+    (error: any) =>
+      error.statusCode === 403 && error.code === "ENROLLMENT_REQUIRED",
   );
 });
 
 test("EnrollCourseUseCase: classifies input, resources, duplicate enrollment, and success", async () => {
   const useCase = (result: any) =>
     new EnrollCourseUseCase({
-      getSummaryByUserId: async () => ({} as any),
+      getSummaryByUserId: async () => ({}) as any,
       getActiveCoursesByUserId: async () => [],
       getCoursesCatalog: async () => [],
       enrollCourse: async () => result,
     });
 
   await assert.rejects(
-    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("", "c_1"),
+    () =>
+      useCase({
+        userFound: true,
+        courseFound: true,
+        alreadyEnrolled: false,
+      }).execute("", "c_1"),
     (error: any) => error.statusCode === 401 && error.code === "UNAUTHORIZED",
   );
   await assert.rejects(
-    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("u_1", ""),
-    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+    () =>
+      useCase({
+        userFound: true,
+        courseFound: true,
+        alreadyEnrolled: false,
+      }).execute("u_1", ""),
+    (error: any) =>
+      error.statusCode === 400 && error.code === "VALIDATION_ERROR",
   );
   await assert.rejects(
-    () => useCase({ userFound: false, courseFound: true, alreadyEnrolled: false }).execute("u_1", "c_1"),
+    () =>
+      useCase({
+        userFound: false,
+        courseFound: true,
+        alreadyEnrolled: false,
+      }).execute("u_1", "c_1"),
     (error: any) => error.statusCode === 404 && error.code === "USER_NOT_FOUND",
   );
   await assert.rejects(
-    () => useCase({ userFound: true, courseFound: false, alreadyEnrolled: false }).execute("u_1", "c_1"),
-    (error: any) => error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
+    () =>
+      useCase({
+        userFound: true,
+        courseFound: false,
+        alreadyEnrolled: false,
+      }).execute("u_1", "c_1"),
+    (error: any) =>
+      error.statusCode === 404 && error.code === "COURSE_NOT_FOUND",
   );
   await assert.rejects(
-    () => useCase({ userFound: true, courseFound: true, alreadyEnrolled: true }).execute("u_1", "c_1"),
-    (error: any) => error.statusCode === 409 && error.code === "ALREADY_ENROLLED",
+    () =>
+      useCase({
+        userFound: true,
+        courseFound: true,
+        alreadyEnrolled: true,
+      }).execute("u_1", "c_1"),
+    (error: any) =>
+      error.statusCode === 409 && error.code === "ALREADY_ENROLLED",
   );
-  await useCase({ userFound: true, courseFound: true, alreadyEnrolled: false }).execute("u_1", "c_1");
+  await useCase({
+    userFound: true,
+    courseFound: true,
+    alreadyEnrolled: false,
+  }).execute("u_1", "c_1");
 });
 
 test("Batch 1 use cases preserve unexpected repository failures", async () => {
   const repositoryFailure = new Error("database connection failed");
-  const progressUseCase = new MarkLessonCompleteUseCase({
-    ...createMockProgressRepo(),
-    findByLesson: async () => {
-      throw repositoryFailure;
+  const progressUseCase = new MarkLessonCompleteUseCase(
+    {
+      ...createMockProgressRepo(),
+      findByLesson: async () => {
+        throw repositoryFailure;
+      },
     },
-  }, createMockCourseRepo(), createMockLessonRepo([{ id: "les_1", courseId: "c_1", duration: 10, type: "text" }]), createMockEnrollmentRepo(true));
+    createMockCourseRepo(),
+    createMockLessonRepo([
+      { id: "les_1", courseId: "c_1", duration: 10, type: "text" },
+    ]),
+    createMockEnrollmentRepo(true),
+  );
 
   await assert.rejects(
-    () => progressUseCase.execute({ userId: "u_1", courseId: "c_1", lessonId: "les_1" }),
+    () =>
+      progressUseCase.execute({
+        userId: "u_1",
+        courseId: "c_1",
+        lessonId: "les_1",
+      }),
     (error: unknown) => error === repositoryFailure,
   );
 
   const enrollmentFailure = new Error("database unavailable");
   const enrollmentUseCase = new EnrollCourseUseCase({
-    getSummaryByUserId: async () => ({} as any),
+    getSummaryByUserId: async () => ({}) as any,
     getActiveCoursesByUserId: async () => [],
     getCoursesCatalog: async () => [],
     enrollCourse: async () => {
@@ -422,6 +544,140 @@ test("Batch 1 use cases preserve unexpected repository failures", async () => {
   await assert.rejects(
     () => enrollmentUseCase.execute("u_1", "c_1"),
     (error: unknown) => error === enrollmentFailure,
+  );
+});
+
+test("Quiz use cases classify validation, not-found, and unavailable states", async () => {
+  const quiz = {
+    id: "quiz_1",
+    courseId: "c_1",
+    lessonId: null,
+    title: "Quiz",
+    description: null,
+    instructions: null,
+    timeLimitSeconds: 600,
+    passingScore: 70,
+    maxAttempts: 2,
+    shuffleQuestions: false,
+    shuffleOptions: false,
+    isPublished: true,
+    createdBy: "owner_1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const questionRepo = {
+    ...createMockQuizRepo(),
+    findByQuizId: async () => [],
+  };
+
+  await assert.rejects(
+    () => new GetQuizUseCase(createMockQuizRepo(), questionRepo as any).execute({ quizId: "" }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+  await assert.rejects(
+    () => new GetQuizUseCase(createMockQuizRepo(), questionRepo as any).execute({ quizId: "missing" }),
+    (error: any) => error.statusCode === 404 && error.code === "QUIZ_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => new CreateQuizUseCase({} as any).execute({ courseId: "c_1", title: "", userId: "u_1" }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+  await assert.rejects(
+    () => new GetQuizUseCase({ ...createMockQuizRepo(), findById: async () => ({ ...quiz, isPublished: false }) } as any, questionRepo as any).execute({ quizId: "quiz_1", userId: "student_1" }),
+    (error: any) => error.statusCode === 403 && error.code === "QUIZ_UNAVAILABLE",
+  );
+});
+
+test("Quiz attempt use cases classify access, state, limits, and valid submission", async () => {
+  const quiz = {
+    id: "quiz_1",
+    courseId: "c_1",
+    lessonId: null,
+    title: "Quiz",
+    description: null,
+    instructions: null,
+    timeLimitSeconds: 600,
+    passingScore: 70,
+    maxAttempts: 1,
+    shuffleQuestions: false,
+    shuffleOptions: false,
+    isPublished: true,
+    createdBy: "owner_1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const attempt = {
+    id: "attempt_1",
+    quizId: "quiz_1",
+    courseId: "c_1",
+    studentId: "student_1",
+    attemptNumber: 1,
+    answers: [],
+    startedAt: new Date(),
+    submittedAt: null,
+    score: 0,
+    totalPoints: 1,
+    percentage: 0,
+    passed: false,
+    status: "in_progress" as const,
+    timeSpentSeconds: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const question = {
+    id: "question_1",
+    quizId: "quiz_1",
+    courseId: "c_1",
+    questionText: "2 + 2?",
+    questionType: "single_choice" as const,
+    options: [{ id: "a", text: "4" }, { id: "b", text: "5" }],
+    correctOptionIds: ["a"],
+    points: 1,
+    order: 1,
+    explanation: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const quizRepo = { ...createMockQuizRepo([quiz]) };
+  const questionWithAnswersRepo = {
+    ...createMockQuizRepo(),
+    findByQuizIdWithAnswers: async () => [question],
+  };
+  const attemptRepo = {
+    ...createMockAttemptRepo([attempt]),
+    submit: async () => ({ ...attempt, status: "submitted" as const, submittedAt: new Date(), answers: [{ questionId: "question_1", selectedOptionIds: ["a"] }], score: 1, percentage: 100, passed: true }),
+  };
+
+  const submit = new SubmitQuizAttemptUseCase(quizRepo as any, questionWithAnswersRepo as any, attemptRepo as any);
+  await assert.rejects(
+    () => submit.execute({ attemptId: "attempt_1", answers: [], userId: "" }),
+    (error: any) => error.statusCode === 401 && error.code === "UNAUTHORIZED",
+  );
+  await assert.rejects(
+    () => submit.execute({ attemptId: "missing", answers: [], userId: "student_1" }),
+    (error: any) => error.statusCode === 404 && error.code === "QUIZ_ATTEMPT_NOT_FOUND",
+  );
+  await assert.rejects(
+    () => submit.execute({ attemptId: "attempt_1", answers: [], userId: "student_2" }),
+    (error: any) => error.statusCode === 403 && error.code === "FORBIDDEN",
+  );
+  await assert.rejects(
+    () => submit.execute({ attemptId: "attempt_1", answers: undefined as any, userId: "student_1" }),
+    (error: any) => error.statusCode === 400 && error.code === "VALIDATION_ERROR",
+  );
+
+  const submittedAttemptRepo = { ...attemptRepo, findById: async () => ({ ...attempt, status: "submitted" as const }) };
+  await assert.rejects(
+    () => new SubmitQuizAttemptUseCase(quizRepo as any, questionWithAnswersRepo as any, submittedAttemptRepo as any).execute({ attemptId: "attempt_1", answers: [], userId: "student_1" }),
+    (error: any) => error.statusCode === 409 && error.code === "QUIZ_ALREADY_SUBMITTED",
+  );
+
+  const result = await submit.execute({ attemptId: "attempt_1", answers: [{ questionId: "question_1", selectedOptionIds: ["a"] }], userId: "student_1" });
+  assert.equal(result.attempt.passed, true);
+
+  await assert.rejects(
+    () => new StartQuizAttemptUseCase({ ...quizRepo, findById: async () => null } as any, questionWithAnswersRepo as any, attemptRepo as any).execute({ quizId: "missing", userId: "student_1" }),
+    (error: any) => error.statusCode === 404 && error.code === "QUIZ_NOT_FOUND",
   );
 });
 

@@ -1,6 +1,7 @@
 import type { IQuizRepository } from "../interface/IQuizRepository";
 import type { IQuizAttemptRepository, QuizAttemptDto } from "../interface/IQuizAttemptRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { NotFoundError, UnauthorizedError, ValidationError } from "../../../core/errors/AppError";
 
 export interface GetQuizAttemptsInput {
   quizId: string;
@@ -17,11 +18,11 @@ export class GetQuizAttemptsUseCase {
   async execute(input: GetQuizAttemptsInput): Promise<QuizAttemptDto[]> {
     const { quizId, userId, userRole } = input;
 
-    if (!quizId) throw new Error("Quiz ID is required.");
-    if (!userId) throw new Error("User ID is required.");
+    if (!quizId) throw new ValidationError("Quiz ID is required.");
+    if (!userId) throw new UnauthorizedError();
 
     const quiz = await this.quizRepository.findById(quizId);
-    if (!quiz) throw new Error("Quiz not found.");
+    if (!quiz) throw new NotFoundError("Quiz not found.", "QUIZ_NOT_FOUND");
 
     const isOwnerOrAdmin =
       userRole === "admin" || quiz.createdBy === userId;

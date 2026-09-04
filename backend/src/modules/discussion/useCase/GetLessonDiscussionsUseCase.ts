@@ -1,5 +1,6 @@
 import type { IDiscussionRepository, PaginatedDiscussionsDto } from "../interface/IDiscussionRepository";
 import { LessonModel } from "../../curriculum/database/Lesson";
+import { NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export class GetLessonDiscussionsUseCase {
   constructor(private readonly discussionRepo: IDiscussionRepository) {}
@@ -12,11 +13,12 @@ export class GetLessonDiscussionsUseCase {
   ): Promise<PaginatedDiscussionsDto> {
     // Verify lesson belongs to course
     const lesson = await LessonModel.findOne({ id: lessonId });
-    if (!lesson) throw new Error("Lesson not found.");
+    if (!lesson) throw new NotFoundError("Lesson not found.", "LESSON_NOT_FOUND");
     if (lesson.courseId !== courseId) {
-      throw Object.assign(new Error("Lesson does not belong to this course."), { statusCode: 400 });
+      throw new ValidationError("Lesson does not belong to this course.");
     }
 
     return this.discussionRepo.findLessonDiscussions(courseId, lessonId, page, limit);
   }
 }
+

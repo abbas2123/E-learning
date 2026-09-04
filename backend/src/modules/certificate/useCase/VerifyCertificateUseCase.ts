@@ -1,4 +1,5 @@
 import type { ICertificateRepository } from "../interface/ICertificateRepository";
+import { ValidationError } from "../../../core/errors/AppError";
 
 export interface PublicCertificateVerificationDto {
   valid: boolean;
@@ -14,7 +15,7 @@ export class VerifyCertificateUseCase {
   constructor(private readonly certificateRepository: ICertificateRepository) {}
 
   async execute(certificateId: string): Promise<PublicCertificateVerificationDto> {
-    if (!certificateId) throw new Error("Certificate ID is required.");
+    if (!certificateId) throw new ValidationError("Certificate ID is required.");
 
     const cert = await this.certificateRepository.findByCertificateId(certificateId);
 

@@ -20,9 +20,7 @@ export interface GetLessonProgressInput {
 }
 
 export class GetLessonProgressUseCase {
-  constructor(
-    private readonly progressRepository: ILessonProgressRepository,
-  ) {}
+  constructor(private readonly progressRepository: ILessonProgressRepository) {}
 
   async execute(input: GetLessonProgressInput): Promise<LessonProgressDto> {
     const { userId, courseId, lessonId, userRole } = input;
@@ -32,7 +30,8 @@ export class GetLessonProgressUseCase {
     if (!lessonId) throw new ValidationError("Lesson ID is required.");
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
+    if (!course)
+      throw new NotFoundError("Course not found.", "COURSE_NOT_FOUND");
 
     const lesson = await LessonModel.findOne({ id: lessonId });
     if (!lesson) {
@@ -53,7 +52,9 @@ export class GetLessonProgressUseCase {
         status: "completed",
       });
       if (!enrollment) {
-        throw new EnrollmentRequiredError("Active enrollment is required to view progress.");
+        throw new EnrollmentRequiredError(
+          "Active enrollment is required to view progress.",
+        );
       }
     }
 

@@ -5,6 +5,7 @@ import type {
   UpdateQuestionParams,
 } from "../interface/IQuestionRepository";
 import { CourseModel } from "../../course/repository/database/Course";
+import { ForbiddenError, NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 export interface UpdateQuestionInput extends UpdateQuestionParams {
   questionId: string;
@@ -21,18 +22,18 @@ export class UpdateQuestionUseCase {
   async execute(input: UpdateQuestionInput): Promise<QuestionDto> {
     const { questionId, userId, userRole, ...fields } = input;
 
-    if (!questionId) throw new Error("Question ID is required.");
+    if (!questionId) throw new ValidationError("Question ID is required.");
 
     const question = await this.questionRepository.findById(questionId);
-    if (!question) throw new Error("Question not found.");
+    if (!question) throw new NotFoundError("Question not found.", "QUESTION_NOT_FOUND");
 
     const quiz = await this.quizRepository.findById(question.quizId);
-    if (!quiz) throw new Error("Parent quiz not found.");
+    if (!quiz) throw new NotFoundError("Parent quiz not found.", "QUIZ_NOT_FOUND");
 
     if (userRole !== "admin" && quiz.createdBy !== userId) {
       const course = await CourseModel.findOne({ id: quiz.courseId });
       if (!course || course.createdBy !== userId) {
-        throw new Error("Unauthorized to update this question.");
+        throw new ForbiddenError("You are not allowed to update this question.");
       }
     }
 
@@ -40,7 +41,7 @@ export class UpdateQuestionUseCase {
       const optionIdsSet = new Set(fields.options.map((o) => o.id));
       for (const cid of fields.correctOptionIds) {
         if (!optionIdsSet.has(cid)) {
-          throw new Error(`Correct option ID '${cid}' does not match any provided option.`);
+          throw new ValidationError("Each correct option must match a provided option.");
         }
       }
     }

@@ -3,6 +3,15 @@ import type { IQuestionRepository, QuestionDto } from "../interface/IQuestionRep
 import type { IQuizAttemptRepository, QuizAttemptDto } from "../interface/IQuizAttemptRepository";
 import { EnrollmentModel } from "../../admin/Repository/database/Enrollment";
 import { CourseModel } from "../../course/repository/database/Course";
+import {
+  AttemptLimitReachedError,
+  EnrollmentRequiredError,
+  NotFoundError,
+  QuizNotReadyError,
+  QuizUnavailableError,
+  UnauthorizedError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export interface StartQuizAttemptInput {
   quizId: string;
@@ -35,17 +44,17 @@ export class StartQuizAttemptUseCase {
   async execute(input: StartQuizAttemptInput): Promise<StartQuizAttemptResponse> {
     const { quizId, userId, userRole } = input;
 
-    if (!quizId) throw new Error("Quiz ID is required.");
-    if (!userId) throw new Error("User ID is required.");
+    if (!quizId) throw new ValidationError("Quiz ID is required.");
+    if (!userId) throw new UnauthorizedError();
 
     const quiz = await this.quizRepository.findById(quizId);
-    if (!quiz) throw new Error("Quiz not found.");
+    if (!quiz) throw new NotFoundError("Quiz not found.", "QUIZ_NOT_FOUND");
 
     const isOwnerOrAdmin =
       userRole === "admin" || (userId && quiz.createdBy === userId);
 
     if (!quiz.isPublished && !isOwnerOrAdmin) {
-      throw new Error("This quiz is not currently published.");
+      throw new QuizUnavailableError("This quiz is not currently published.");
     }
 
     // Verify enrollment
@@ -56,7 +65,7 @@ export class StartQuizAttemptUseCase {
         status: "completed",
       });
       if (!enrollment) {
-        throw new Error("You must be enrolled in this course to take quizzes.");
+        throw new EnrollmentRequiredError("You must be enrolled in this course to take quizzes.");
       }
     }
 
@@ -65,7 +74,7 @@ export class StartQuizAttemptUseCase {
     let questions = await this.questionRepository.findByQuizId(quizId);
 
     if (questions.length === 0) {
-      throw new Error("This quiz has no questions yet.");
+      throw new QuizNotReadyError("This quiz has no questions yet.");
     }
 
     if (quiz.shuffleQuestions) {
@@ -90,7 +99,7 @@ export class StartQuizAttemptUseCase {
     if (quiz.maxAttempts !== null && quiz.maxAttempts > 0) {
       const attemptCount = await this.attemptRepository.countByStudentAndQuiz(userId, quizId);
       if (attemptCount >= quiz.maxAttempts) {
-        throw new Error(`Maximum attempt limit reached (${quiz.maxAttempts} attempts allowed).`);
+        throw new AttemptLimitReachedError(`Maximum attempt limit reached (${quiz.maxAttempts} attempts allowed).`);
       }
     }
 

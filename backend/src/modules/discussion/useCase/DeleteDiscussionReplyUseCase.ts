@@ -1,6 +1,11 @@
 import { CourseModel } from "../../course/repository/database/Course";
 import type { IDiscussionRepository } from "../interface/IDiscussionRepository";
 import type { IDiscussionReplyRepository } from "../interface/IDiscussionReplyRepository";
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/errors/AppError";
 
 export class DeleteDiscussionReplyUseCase {
   constructor(
@@ -13,8 +18,10 @@ export class DeleteDiscussionReplyUseCase {
     requesterId: string,
     requesterRole: string,
   ): Promise<void> {
+    if (!replyId) throw new ValidationError("Reply ID is required.");
+
     const reply = await this.replyRepo.findById(replyId);
-    if (!reply) throw Object.assign(new Error("Reply not found."), { statusCode: 404 });
+    if (!reply) throw new NotFoundError("Reply not found.", "REPLY_NOT_FOUND");
 
     const isAdmin = requesterRole === "admin";
     const isAuthor = reply.authorId === requesterId;
@@ -25,10 +32,10 @@ export class DeleteDiscussionReplyUseCase {
       if (discussion) {
         const course = await CourseModel.findOne({ id: discussion.courseId }).select("createdBy");
         if (!course || course.createdBy !== requesterId) {
-          throw Object.assign(new Error("You are not authorised to delete this reply."), { statusCode: 403 });
+          throw new ForbiddenError("You are not authorised to delete this reply.");
         }
       } else {
-        throw Object.assign(new Error("You are not authorised to delete this reply."), { statusCode: 403 });
+        throw new ForbiddenError("You are not authorised to delete this reply.");
       }
     }
 

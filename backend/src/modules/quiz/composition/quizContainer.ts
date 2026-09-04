@@ -45,7 +45,7 @@ export function createQuizContainer() {
   const createQuizUseCase = new CreateQuizUseCase(quizRepository);
   const updateQuizUseCase = new UpdateQuizUseCase(quizRepository);
   const deleteQuizUseCase = new DeleteQuizUseCase(quizRepository, questionRepository, attemptRepository);
-  const getQuizUseCase = new GetQuizUseCase(quizRepository, questionRepository);
+  const getQuizUseCase = new GetQuizUseCase(quizRepository, questionRepository, courseRepository);
   const getCourseQuizzesUseCase = new GetCourseQuizzesUseCase(quizRepository);
 
   const createQuestionUseCase = new CreateQuestionUseCase(quizRepository, questionRepository);

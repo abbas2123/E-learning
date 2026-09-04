@@ -42,6 +42,9 @@ export class SubmitQuizAttemptUseCase {
 
     if (!attemptId) throw new ValidationError("Attempt ID is required.");
     if (!userId) throw new UnauthorizedError();
+    if (!Array.isArray(answers)) {
+      throw new ValidationError("Answers must be an array.");
+    }
 
     const attempt = await this.attemptRepository.findById(attemptId);
     if (!attempt)

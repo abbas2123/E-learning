@@ -36,7 +36,9 @@ export class DashboardRepository implements IDashboardRepository {
 
     for (const e of enrollments) {
       const course = await CourseModel.findOne({ id: e.courseId });
-      const lessons = await LessonModel.find({ courseId: e.courseId }).sort({ order: 1 });
+      const lessons = await LessonModel.find({ courseId: e.courseId }).sort({
+        order: 1,
+      });
       const totalLessons = lessons.length;
 
       const progressRecords = await LessonProgressModel.find({
@@ -48,9 +50,13 @@ export class DashboardRepository implements IDashboardRepository {
         progressRecords.map((p) => [p.lessonId, p.completed]),
       );
 
-      const completedLessons = lessons.filter((l) => completedMap.get(l.id)).length;
+      const completedLessons = lessons.filter((l) =>
+        completedMap.get(l.id),
+      ).length;
       const progressPercentage =
-        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
 
       if (totalLessons > 0 && completedLessons >= totalLessons) {
         completedCount++;
@@ -59,16 +65,19 @@ export class DashboardRepository implements IDashboardRepository {
       }
 
       // Find first incomplete lesson to resume
-      const nextIncompleteLesson = lessons.find((l) => !completedMap.get(l.id)) || lessons[0];
+      const nextIncompleteLesson =
+        lessons.find((l) => !completedMap.get(l.id)) || lessons[0];
 
       // Track the latest updated progress time for finding the most recently active course
       const latestProgressTime = progressRecords.reduce(
-        (max, p) => Math.max(max, new Date(p.updatedAt || p.createdAt).getTime()),
+        (max, p) =>
+          Math.max(max, new Date(p.updatedAt || p.createdAt).getTime()),
         new Date(e.createdAt).getTime(),
       );
 
       if (
-        (!mostRecentResumeCourse || latestProgressTime > mostRecentUpdateTime) &&
+        (!mostRecentResumeCourse ||
+          latestProgressTime > mostRecentUpdateTime) &&
         progressPercentage < 100
       ) {
         mostRecentUpdateTime = latestProgressTime;
@@ -85,10 +94,13 @@ export class DashboardRepository implements IDashboardRepository {
 
     // If all courses are completed, resume course can be the last completed one or null
     if (!mostRecentResumeCourse && enrollments.length > 0) {
-      const firstCourse = await CourseModel.findOne({ id: enrollments[0].courseId });
+      const firstCourse = await CourseModel.findOne({
+        id: enrollments[0].courseId,
+      });
       mostRecentResumeCourse = {
         courseId: enrollments[0].courseId,
-        courseTitle: enrollments[0].courseTitle || firstCourse?.title || "Course",
+        courseTitle:
+          enrollments[0].courseTitle || firstCourse?.title || "Course",
         progressPercentage: 100,
         thumbnail: firstCourse?.thumbnail || undefined,
       };
@@ -130,7 +142,9 @@ export class DashboardRepository implements IDashboardRepository {
 
     for (const e of enrollments) {
       const course = await CourseModel.findOne({ id: e.courseId });
-      const lessons = await LessonModel.find({ courseId: e.courseId }).sort({ order: 1 });
+      const lessons = await LessonModel.find({ courseId: e.courseId }).sort({
+        order: 1,
+      });
       const totalLessons = lessons.length;
 
       const progressRecords = await LessonProgressModel.find({
@@ -142,9 +156,13 @@ export class DashboardRepository implements IDashboardRepository {
         progressRecords.map((p) => [p.lessonId, p.completed]),
       );
 
-      const completedLessons = lessons.filter((l) => completedMap.get(l.id)).length;
+      const completedLessons = lessons.filter((l) =>
+        completedMap.get(l.id),
+      ).length;
       const progressPercentage =
-        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
 
       const nextIncompleteLesson = lessons.find((l) => !completedMap.get(l.id));
 
@@ -163,7 +181,8 @@ export class DashboardRepository implements IDashboardRepository {
           totalLessons > 0
             ? `${completedLessons} / ${totalLessons} Lessons`
             : "0 Lessons",
-        instructor: (course as any)?.instructor || course?.createdBy || "Instructor",
+        instructor:
+          (course as any)?.instructor || course?.createdBy || "Instructor",
         image:
           course?.thumbnail ||
           "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80",
@@ -176,9 +195,11 @@ export class DashboardRepository implements IDashboardRepository {
   }
 
   async getCoursesCatalog(): Promise<CatalogCourse[]> {
-    const courses = await CourseModel.find({ status: "published" as any }).sort({
-      createdAt: -1,
-    });
+    const courses = await CourseModel.find({ status: "published" as any }).sort(
+      {
+        createdAt: -1,
+      },
+    );
 
     if (courses.length === 0) {
       const allCourses = await CourseModel.find().sort({ createdAt: -1 });
@@ -200,7 +221,10 @@ export class DashboardRepository implements IDashboardRepository {
     }));
   }
 
-  async enrollCourse(userId: string, courseId: string): Promise<{
+  async enrollCourse(
+    userId: string,
+    courseId: string,
+  ): Promise<{
     userFound: boolean;
     courseFound: boolean;
     alreadyEnrolled: boolean;
@@ -209,17 +233,20 @@ export class DashboardRepository implements IDashboardRepository {
       $or: [{ id: userId }, { email: userId }],
     });
 
-    if (!user) return { userFound: false, courseFound: true, alreadyEnrolled: false };
+    if (!user)
+      return { userFound: false, courseFound: true, alreadyEnrolled: false };
 
     const course = await CourseModel.findOne({ id: courseId });
-    if (!course) return { userFound: true, courseFound: false, alreadyEnrolled: false };
+    if (!course)
+      return { userFound: true, courseFound: false, alreadyEnrolled: false };
 
     // Idempotent — skip if already enrolled
     const existing = await EnrollmentModel.findOne({
       studentId: user.id || userId,
       courseId,
     });
-    if (existing) return { userFound: true, courseFound: true, alreadyEnrolled: true };
+    if (existing)
+      return { userFound: true, courseFound: true, alreadyEnrolled: true };
 
     const enrollment = new EnrollmentModel({
       id: randomUUID(),
